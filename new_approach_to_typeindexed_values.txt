@@ -1,4 +1,4 @@
-(* http://mlton.org/pipermail/mlton-user/2006-September/000916.html *)
+* http://mlton.org/pipermail/mlton-user/2006-September/000916.html
 
 [MLton-user] a new approach to type-indexed values in SML
 Stephen Weeks sweeks at sweeks.com
@@ -196,6 +196,7 @@ Clients of tivs need to understand the following modules that are
 exposed by the library.
 tivのクライアントはライブラリの公開する以下のモジュールを理解する必要がある。
 
+::
   structure Type: sig type 'a t end
   signature TYCON<n>
   signature TIV
@@ -216,6 +217,7 @@ structure matching a TYCON<n> signature of appropriate arity.
 So, there will be structures like
 よって、以下のようなstructureがあるだろう。
 
+::
   structure BoolTycon: TYCON0
   structure IntTycon: TYCON0
   structure ListTycon: TYCON1
@@ -228,6 +230,7 @@ construct representations of types built by the type constructor.
 各TYCON signatureはSML型コンストラクタと型コンストラクタを表現するSMLの値を特定し、(？)
 型コンストラクタによって型の表現を構成することを可能にする。
 
+::
   signature TYCON0 =
      sig
         type t
@@ -256,36 +259,46 @@ type-constructor representations.
 For example, "bool -> int option" is represented by
 例えば、"bool -> int option" は以下のように表現される。
 
+::
   val t: (bool -> int option) Type.t =
      ArrowTycon.ty (BoolTycon.ty, OptionTycon.ty IntTycon.ty)
 
 Each tiv is represented by a structure matching the TIV signature,
 whose key component is an "apply" function that applies the tiv to a
 type to yield an ordinary value.
+各 tiv は TIV signature にマッチする structure によって表現され、
+そのキーとなる部分は通常の値を得るためにそのtivを型に適用する ``apply``  関数である。
 
-signature TIV =
-   sig
-      type 'a t
-      ...         
-      val apply: 'a Type.t -> 'a t
-   end
+::
+  signature TIV =
+     sig
+        type 'a t
+        ...
+        val apply: 'a Type.t -> 'a t
+     end
 
 Here are some standard tivs.
+以下がいくつかの標準的な tiv である。
 
-structure Dummy: TIV where type 'a t = 'a
-structure Equals: TIV where type 'a t = 'a * 'a -> bool
-structure Flatten: TIV where type 'a t = 'a -> int list
-structure Show: TIV where type 'a t = 'a -> string
-structure SuperReverse: TIV where type 'a t = 'a -> 'a
-structure Taut: TIV where type 'a t = 'a -> bool
+::
+  structure Dummy: TIV where type 'a t = 'a
+  structure Equals: TIV where type 'a t = 'a * 'a -> bool
+  structure Flatten: TIV where type 'a t = 'a -> int list
+  structure Show: TIV where type 'a t = 'a -> string
+  structure SuperReverse: TIV where type 'a t = 'a -> 'a
+  structure Taut: TIV where type 'a t = 'a -> bool
 
 Note that Equals, Flatten, SuperReverse, and Taut are partial,
 i.e. not defined for all types, but that this is not reflected in
 their types.
+``Equals``, ``Flatten``, ``SuperReverse``, ``Taut`` は *partial* である、
+つまり、全ての型について定義されていないが、これはそれらの型に反映されていない。
 
 To use a tiv, one simply applies it to the representation of the
 desired type.
+tiv を使用するには、単にそれを望みの型の表現に適用する。
 
+::
   val _: int option = Dummy.apply (Option.ty Int.ty)
   val _: int list * int list -> bool = Equals.apply (List.ty Int.ty)
   val _: int list list -> int list = Flatten.apply (List.ty (List.ty Int.ty))
@@ -295,11 +308,14 @@ desired type.
      fn ty => Flatten.apply ty o SuperReverse.apply ty
 
 The last example is the one from
+最後の例は以下に由来する。
 
   http://mlton.org/References#Yang98
 
 showing why one wants to be able to compose different tivs dealing
 with the same type family.
+なぜ同じ型族に取り組む（？）異なる tiv を組み合わせることを可能にしたいのかを示している。
+
 
 ------------------------------------------------------------
 Declaring Type-Indexed Values
@@ -307,7 +323,10 @@ Declaring Type-Indexed Values
 
 One declares a new tiv by applying the Tiv functor.  The inductive
 rules are specified later.
+新たな tiv を Tiv functor を適用することで定義する。
+帰納ルールは以下で示される。
 
+::
   functor Tiv (S: TIV_ARG): TIV
 
   signature TIV_ARG =
@@ -319,15 +338,24 @@ rules are specified later.
      end
 
 Type 'a t specifies the type of the type-indexed value once the
-type-index has been instantiated.  For example, for equality,
+type-index has been instantiated.
+型 *'a t* はtype-indexがインスタンス化された時点の type-indexed value の型を示す。
 
+For example, for equality,
+例えば等値性については
+
+::
    type 'a t = 'a * 'a -> bool
 
-The name is used solely for debugging messages.  The "iso" function
-tells how to lift an arbitrary isomorphism to an isomorphism between
-values.  An isomorphism is a pair of functions, one for each direction
-of the mapping.
+The name is used solely for debugging messages.
+``name`` はデバッグメッセージに使われる。
+The "iso" function tells how to lift an arbitrary isomorphism to an isomorphism between values.
+``iso`` 関数は任意の isomorphism から値間のisomorphismへどのように持ち上げるのかを示す。
 
+An isomorphism is a pair of functions, one for each direction of the mapping.
+isomorphism は関数のペアであり、写像の各向きに対応する。
+
+::
   structure Iso:>
      sig
         type ('a, 'b) t
@@ -339,31 +367,39 @@ of the mapping.
      end
 
 Here is how the Dummy type-indexed value is declared.
+これは ``Dummy`` type-indexed value がどのように定義されるかを示す。
 
-structure Dummy =
-   Tiv (type 'a t = 'a
-        val name = "dummy"
-        fun iso i = i)
+::
+  structure Dummy =
+     Tiv (type 'a t = 'a
+          val name = "dummy"
+          fun iso i = i)
 
 Here is how Equals is declared.  The isomorphism lifter uses some
 straightforward utilities from the Iso structure.
+これは ``Equals`` がどのように定義されるか。
+isomorphism リフターは ``Iso`` structure のいくつかの簡単なユーティリティを使う。
 
-structure Equals =
-   Tiv (type 'a t = 'a * 'a -> bool
-        val name = "equals"
-        fun iso i = let open Iso in arrow (tuple2 (i, i), id) end)
+::
+  structure Equals =
+     Tiv (type 'a t = 'a * 'a -> bool
+          val name = "equals"
+          fun iso i = let open Iso in arrow (tuple2 (i, i), id) end)
 
-At the point a tiv is declared, it is undefined for all types.  Later
-definitions of inductive rules determine the types at which the tiv is
-defined.
+At the point a tiv is declared, it is undefined for all types.
+tiv が定義されるポイントでは、それは全ての型について未定義である。
+
+Later definitions of inductive rules determine the types at which the tiv is defined.
+後述する(?) 帰納ルールの定義はどのtivが定義されているかを決定する。
 
 ------------------------------------------------------------
 Defining Nullary Type Constructors and Rules
 ------------------------------------------------------------
 
-The library defines a functor, Tycon0, for building nullary type
-constructors.
- 
+The library defines a functor, Tycon0, for building nullary type constructors.
+ライブラリがfunctor ``Tycon0`` をnullary型コンストラクタの構築のために定義する。
+
+::
   functor Tycon0 (S: TYCON0_ARG): TYCON0
 
   signature TYCON0_ARG =
@@ -376,27 +412,43 @@ constructors.
 For example, the bool type constructor is created by the following
 functor application, supplying the SML type being represented and the
 name, used only for debugging messages.
+例えば bool 型コンストラクタは以下のファンクタ適用で作られる。
+これは表現されたSML型が提供され、 ``name`` はデバッグメッセージの為のみに使用される。
 
+::
   structure BoolTycon = Tycon0 (type t = bool
                                 val name = "bool")
 
 The library provides a family of functors, DefCase<n>, for defining
-inductive rules, one for each arity.  The functor for defining the
-rule for nullary type constructors is specified by the following.
+inductive rules, one for each arity.
+ライブラリは functor ``DefCase<n>`` 族を各アリティのために帰納ルールを定義するために提供する。
 
+The functor for defining the
+rule for nullary type constructors is specified by the following.
+そのnullary型コンストラクタの定義のためのファンクタは以下によって示される。
+
+::
   signature EMPTY = sig end
   functor DefCase0 (structure Tycon: TYCON0
                     structure Value: TIV
                     val rule: Tycon.t Value.t): EMPTY
 
-The EMPTY signature is used for modules that have no exports.  All of
-the DefCase<n> functors return an empty structure.  That is, they are
+The EMPTY signature is used for modules that have no exports.
+``EMPTY`` シグネチャは何も公開しないモジュールのために使用される。
+
+All of the DefCase<n> functors return an empty structure.
+全ての ``DefCase<n>`` ファンクタは空のstructureを返す。
+
+That is, they are
 functors that are applied purely for their side effect, namely, adding
 an inductive rule to the global collection of rules.  
+それは、それらは純粋に、名前付け、規則のグローバルコレクションへ帰納ルールの追加、サイドエフェクトのために適用されるからだ。
 
 Here are the definitions of the rules for booleans for the Dummy and
 Equals tivs.
+これは ``Dummy`` と ``Equals`` tiv のためのbooleanのための規則の定義である。
 
+::
   structure Z = DefCase0 (structure Tycon = BoolTycon
                           structure Value = Dummy
                           val rule = false)
@@ -406,9 +458,13 @@ Equals tivs.
                           val rule = op =)
 
 The definition of equality uses SML's built-in polymorphic equality
-specialized for the particular case of booleans.  One could just as
-well have written
+specialized for the particular case of booleans.
+等値性の定義はbooleanの特定ケースにスペシャライズされたSMLの組み込みの多相等値性を使う。
 
+One could just as well have written
+？？？
+
+::
   val rule = fn (false, false) => true 
               | (true, true) => true 
               | _ => false
