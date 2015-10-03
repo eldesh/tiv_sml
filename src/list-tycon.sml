@@ -1,3 +1,4 @@
+
 structure ListTyconRep =
    struct
       datatype ('a, 'r) t =
@@ -41,13 +42,23 @@ structure Z =
           val elt = Equals.apply t
        in
           fn z =>
-          recur (z, fn ((b1, b2), loop) =>
+          Util.recur (z, fn ((b1, b2), loop) =>
                  case (Iso.project (i, b1), Iso.project (i, b2)) of
                     (Nil, Nil) => true
                   | (Cons (x1, b1), Cons (x2, b2)) =>
                        elt (x1, x2) andalso loop (b1, b2)
                   | _ => false)
        end)
+
+(**
+ * import from show.sml
+ *)
+fun seq (pre, suf, l) =
+   let
+      open Sequence
+   in
+      seq [one pre, seq (List.separate (l, one ", ")), one suf]
+   end
 
 structure Z =
    DefCase1Iso
@@ -59,7 +70,7 @@ structure Z =
        in
           fn (b, seen) =>
           seq ("[", "]",
-               recur ((b, []), fn ((b, ac), loop) =>
+               Util.recur ((b, []), fn ((b, ac), loop) =>
                       case Iso.project (iso, b) of
                          Nil => rev ac
                        | Cons (x, l) => loop (l, elt (x, seen) :: ac)))

@@ -1,10 +1,9 @@
 group
-  structure RefRep
-  structure RefTycon
+  functor DummyEqualsShow0
 is
   util.cm
   tiv.cm
   dummy.cm
   equals.cm
   show.cm
-  ref-tycon.sml
+  dummy-equals-show.fun

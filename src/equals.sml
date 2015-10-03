@@ -1,14 +1,14 @@
 structure Equals =
    Tiv (type 'a t = 'a * 'a -> bool
         val name = "equals"
-        fun iso i = let open Iso in arrow (tuple2 (i, i), id) end)
+        fun iso i = let open Iso in arrow (tuple2 (i, i), Iso.id) end)
 
 structure Z =
    DefTupleCase
    (structure Accum = Equals
     structure Value = Equals
     fun base _ = true
-    val finish = id
+    val finish = Util.id
     fun step (a, equalsR) =
        let
           val equalsA = Equals.apply a

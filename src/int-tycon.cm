@@ -1,4 +1,7 @@
 group
   structure IntTycon
 is
+  util.cm
+  tiv.cm
+  dummy-equals-show.cm
   int-tycon.sml

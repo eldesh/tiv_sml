@@ -2,4 +2,9 @@ group
   structure ListTyconRep
   structure ListTycon
 is
+  util.cm
+  tiv.cm
+  dummy.cm
+  equals.cm
+  show.cm
   list-tycon.sml

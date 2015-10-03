@@ -18,7 +18,7 @@ structure TupleTycon:
          Type.apply
          (tycon, [Type.raw ta, Type.raw tb], fn iso =>
           Iso.compose (Iso.make (fn [ua, ub] => (proj ta ua, proj tb ub)
-        | _ => die "ty2",
+        | _ => Util.die "ty2",
                                  fn (a, b) => [inj ta a, inj tb b]),
                        iso))
 
@@ -27,7 +27,7 @@ structure TupleTycon:
          (tycon, [Type.raw ta, Type.raw tb, Type.raw tc], fn iso =>
           Iso.compose
           (Iso.make (fn [ua, ub, uc] => (proj ta ua, proj tb ub, proj tc uc)
-        | _ => die "ty3",
+        | _ => Util.die "ty3",
                      fn (a, b, c) => [inj ta a, inj tb b, inj tc c]),
            iso))
    end

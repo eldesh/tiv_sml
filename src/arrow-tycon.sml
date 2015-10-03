@@ -5,7 +5,7 @@ structure ArrowTycon =
 
 structure Z = DefCase2Simple (structure Tycon = ArrowTycon
                               structure Value = Dummy
-                              fun rule (_, b) = const (Dummy.apply b))
+                              fun rule (_, b) = Util.const (Dummy.apply b))
 
 structure Z = DefCase2Simple (structure Tycon = ArrowTycon
                               structure Value = Show

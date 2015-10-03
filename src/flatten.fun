@@ -12,6 +12,8 @@ functor Flatten (structure Base: TYCON0)
           structure Value = Flatten
           fun rule i = [i])
              
+     datatype z = datatype ListTyconRep.t
+
       structure Z =
          DefCase1Iso
          (structure Tycon = ListTycon
@@ -21,7 +23,7 @@ functor Flatten (structure Base: TYCON0)
                 val flattenElt = Flatten.apply t
              in
                 fn l =>
-                recur (l, fn (l, loop) =>
+                Util.recur (l, fn (l, loop) =>
                        case Iso.project (iso, l) of
                           Nil => []
                         | Cons (x, l) => flattenElt x @ loop l)

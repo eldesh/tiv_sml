@@ -5,7 +5,7 @@ is
   dummy.cm
   equals.cm
   show.cm
-  dummy-equals-show.fun
+  dummy-equals-show.cm
   array-tycon.sml
   arrow-tycon.cm
   bool-tycon.cm

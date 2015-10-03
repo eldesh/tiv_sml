@@ -4,4 +4,4 @@ structure RealTycon = Tycon0 (type t = real
 structure Z = DummyEqualsShow0 (structure Tycon = RealTycon
                                 val dummy = 17.0
                                 val equals = Real.==
-                                val show = Sequence.one o Real.toString o fst)
+                                fun show ? = Sequence.one (Real.toString (Util.fst ?)))

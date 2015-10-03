@@ -39,5 +39,7 @@ is
   def-default.fun
   tuple-tycon.sml
   def-tuple-case.fun
-  hide-type.sml
+  (*
+  hide-type.cm
+  *)
 

@@ -4,4 +4,4 @@ structure BoolTycon = Tycon0 (type t = bool
 structure Z = DummyEqualsShow0 (structure Tycon = BoolTycon
                                 val dummy = false
                                 val equals = op =
-                                val show = Sequence.one o Bool.toString o fst)
+                                fun show ? = Sequence.one (Bool.toString (Util.fst ?)))

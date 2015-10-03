@@ -8,5 +8,5 @@ structure Z =
    (structure Accum = Dummy
     structure Value = Dummy
     val base = ()
-    val finish = id
+    val finish = Util.id
     fun step (t, ac) = (Dummy.apply t, ac))

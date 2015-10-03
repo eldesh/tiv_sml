@@ -21,13 +21,13 @@ functor DefTupleCase
             (rev ts,
              Iso.inject
              (Accum.iso (Iso.make (fn () => [],
-                                   fn [] => () | _ => die "tuple iso")),
+                                   fn [] => () | _ => Util.die "tuple iso")),
               base),
              fn (t, ac) =>
              Iso.inject
              (Accum.iso
               (Iso.make (op ::,
-                         fn u :: us => (u, us) | _ => die "tuple iso")),
+                         fn u :: us => (u, us) | _ => Util.die "tuple iso")),
               step (Type.makeId t, ac): (Univ.t * Univ.t list) Accum.t)))))
 
    end

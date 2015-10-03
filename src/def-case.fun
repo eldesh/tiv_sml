@@ -1,3 +1,5 @@
+val die = Util.die
+
 functor DefCase0
    (structure Tycon: TYCON0
     structure Value: TIV

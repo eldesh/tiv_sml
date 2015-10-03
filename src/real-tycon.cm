@@ -1,4 +1,7 @@
 group
   structure RealTycon
 is
+  util.cm
+  tiv.cm
+  dummy-equals-show.cm
   real-tycon.sml

@@ -27,7 +27,7 @@ structure Taut:>
       structure Z =
          DefCase0 (structure Tycon = BoolTycon
                    structure Value = FromBool
-                   val rule = id)
+                   val rule = Util.id)
 
       structure Taut =
          Tiv (type 'a t = 'a -> bool
@@ -37,7 +37,7 @@ structure Taut:>
       structure Z =
          DefCase0 (structure Tycon = BoolTycon
                    structure Value = Taut
-                   val rule = id)
+                   val rule = Util.id)
          
       structure Z =
          DefCase2Simple

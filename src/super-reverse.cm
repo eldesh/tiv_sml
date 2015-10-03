@@ -1,4 +1,7 @@
 group
   structure SuperReverse
 is
+  util.cm
+  tiv.cm
+  list-tycon.cm
   super-reverse.sml

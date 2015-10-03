@@ -47,11 +47,11 @@ structure Z =
           val elt = Show.apply t
        in
           fn (b, seen) =>
-          checkSeen (Iso.inject (iso, b), seen,
+          Show.checkSeen (Iso.inject (iso, b), seen,
                      fn (u1, u2) => equals (Iso.project (iso, u1),
                                             Iso.project (iso, u2)),
                      fn () =>
-                     seq ("[|", "|]",
+                     Show.seq ("[|", "|]",
                           List.tabulate
                           (length b, fn i => elt (sub (b, i), seen))))
        end)

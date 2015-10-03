@@ -1,4 +1,7 @@
 group
   structure BoolTycon
 is
+  util.cm
+  tiv.cm
+  dummy-equals-show.cm
   bool-tycon.sml

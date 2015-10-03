@@ -1,4 +1,6 @@
 group
   structure Equals
 is
+  util.cm
+  tiv.cm
   equals.sml

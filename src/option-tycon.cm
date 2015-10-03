@@ -1,4 +1,9 @@
 group
   structure OptionTycon
 is
+  util.cm
+  tiv.cm
+  dummy.cm
+  equals.cm
+  show.cm
   option-tycon.sml

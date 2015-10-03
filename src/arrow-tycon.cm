@@ -1,4 +1,8 @@
 group
   structure ArrowTycon
 is
+  util.cm
+  tiv.cm
+  dummy.cm
+  show.cm
   arrow-tycon.sml
