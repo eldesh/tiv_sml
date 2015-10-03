@@ -1,0 +1,4 @@
+group
+  structure RealTycon
+is
+  real-tycon.sml

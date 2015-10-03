@@ -1,0 +1,4 @@
+group
+  structure Dummy
+is
+  dummy.sml

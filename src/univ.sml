@@ -1,5 +1,6 @@
 structure Univ:> UNIV =
 struct
+  open Util
 
 type t = exn
 

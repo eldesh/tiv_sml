@@ -19,4 +19,4 @@ fun snd (_, b) = b
 
 end
 
-open Util
+(* open Util *)

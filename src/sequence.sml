@@ -1,5 +1,7 @@
 structure Sequence:> SEQUENCE =
    struct
+     open Util
+
       datatype 'a t =
          List of 'a list
        | One of 'a

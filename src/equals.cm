@@ -1,0 +1,4 @@
+group
+  structure Equals
+is
+  equals.sml

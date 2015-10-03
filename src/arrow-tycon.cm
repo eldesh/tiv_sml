@@ -1,0 +1,4 @@
+group
+  structure ArrowTycon
+is
+  arrow-tycon.sml

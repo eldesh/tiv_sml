@@ -1,0 +1,20 @@
+group
+is
+  util.cm
+  tiv.cm
+  dummy.cm
+  equals.cm
+  show.cm
+  dummy-equals-show.fun
+  array-tycon.sml
+  arrow-tycon.cm
+  bool-tycon.cm
+  int-tycon.cm
+  list-tycon.cm
+  option-tycon.cm
+  real-tycon.cm
+  ref-tycon.cm
+  flatten.fun
+  super-reverse.cm
+  taut.sml
+  main.sml
