@@ -17,71 +17,117 @@ modular/extensible way, closer to how Haskell type classes are done.
 The lack of first-class polymorphism in SML might make it seem
 impossible, but I've come up with an approach that I am happy with and
 I think will be useful in practice, once the initial infrastructure is
-digested.  The following note describes the approach.  I would be
+digested.
+一度最初のインフラがこなれてくれば実践で役に立つだろうと思う。
+
+The following note describes the approach.  I would be
 happy to answer questions or take feedback.
+以下のノートはそのアプローチを解説する。
+質問やフィードバックは歓迎する。
 
 ----------------------------------------------------------------------
 
 A type-indexed value (tiv) is a set of values with one value for each
-type in a particular set of types.  A familiar example is equality,
+type in a particular set of types.
+tivとは型の特性セット内の、一つの値を持つ各型の集合である。
+
+A familiar example is equality,
 which can be viewed as a set of equality functions, one for each
-(equality) type.  Many type-indexed values can be defined by induction
-over type constructors.  For example, equality can be defined by
+(equality) type.
+なじみのある例として等価性があり、これは各型についての 等価性関数の集合として見ることが出来る。
+
+Many type-indexed values can be defined by induction
+over type constructors.
+多くのtivが型コンストラクタ上のinductionによって定義することが出来る。
+
+For example, equality can be defined by
 primitive notions of equality at ground types (bool, int, etc.) and by
 induction at compound types (options, lists, tuples, etc.).
+例えば、等価性は基盤型(bool, int, etc.)の等価性のプリミティブな考えと複合型
+(options, lists, tuples, etc.)のinductionによって定義することが出来る。
 
 This note shows a method to define tivs within SML that has the
 following properties:
+このノートは以下のような性質を持つtivをSML内で定義する手法を示す。
 
   * There is a single representation of types as values and a
     one-to-one correspondence between the SML type "t" and its
     representation as a value of type "t Type.t".  Here are some
     example values representing types.
+	型には値としての単一の表現があり、SMLの型 "t" とその 型 "t Type.t" の値としての表現の間には
+	１対１対応がある。
+	以下は型を表現する値のいくつかの例である。
 
       BoolTycon.ty: bool Type.t
       ListTycon.ty BoolTycon.ty: bool list Type.t
       ArrowTycon.ty (IntTycon.ty, BoolTycon.ty): (int -> bool) Type.t
 
   * A tiv is a polymorphic function from (the representation of) types
-    to an ordinary SML value of the appropriate type.  For example,
+    to an ordinary SML value of the appropriate type.
+	tivは型(の表現)から対応する型の通常のSMLの値への多相関数である。
+	For example,
     equality has the following specification:
+	例えば、等値性は以下のような仕様を持つ。
 
       val equals: 'a Type.t -> 'a * 'a -> bool
 
   * Users of tivs are statically prevented from making type errors.
+    tivのユーザは型エラーを静的に防がなければならない。
     For example, the following is a type error.
+	例えば以下は型エラーである。
 
       equals BoolTycon.ty (13, 14)
 
   * A new type constructor of any arity can be defined at any 
     toplevel-declaration point in the program, and can subsequently be
     used to define tivs.
+	任意のアリティの新たな型コンストラクタはプログラムの任意のトップレベルで定義することが出来、
+	それに続いてtivを定義するのに使うことが出来る。
 
   * Type constructors for mutable types (array, ref, etc.) and
     recursive types (list) are supported as well as type constructors
     for nonrecursive immutable types (option) and ground types (bool,
     int, etc.).
+	変更可能な型(array, ref, etc.)や再帰型(list)は非再帰、変更不能な型(option)と基盤型(bool, int, etc.)
+	のようにサポートされている。
 
   * A new tiv can be declared at any toplevel-declaration point
     in the program. 
+	新たなtivは任意の場所で～(前に言ったな？
 
   * A tiv is inductively defined over type constructors by a global
     collection of rules, with at most one rule for each type
     constructor. 
+	tivは、それぞれの型コンストラクタのルールを伴う
+	グローバルなルールコレクションによって型コンストラクタ上で帰納的に定義される。
 
   * The inductive rule for a particular tiv and a particular type
     constructor can be given at any toplevel-declaration point in the
-    program after the tiv and type constructor have been defined.  In
-    particular, one need neither group together all the rules for a
+    program after the tiv and type constructor have been defined.
+	特定のtivと特定の型コンストラクタについての帰納ルールはプログラム上のトップレベル定義ポイントの
+	とこでも与えることが出来る。tivと型コンストラクタが定義された後なら。
+
+	In particular, one need neither group together all the rules for a
     tiv nor group together all the rules for a type constructor.
+	特に、あるtivについての全てのルールをグループ化する必要も、
+	ある型コンストラクタについての全てのルールをグループする必要も無い。
 
   * Each inductive rule is specified by a polymorphic function,
     checked by the SML type system, mapping type(s) corresponding to
     the type constructor's arguments to a value of the desired type.
+	各帰納ルールは多相関数によって特定され、SML型システムによって検査され、
+	型コンストラクタの引数に対応する型を望ましい型の値へマッピングする。
+
     An inductive rule for a tiv may refer to the same tiv, other tivs,
-    both, or neither.  This is done by applying the necessary tivs to
-    the supplied types in the body of the rule.  For example, the
-    equality rule for options is as follows.
+    both, or neither.
+	あるtivの帰納ルールは同じtiv、他のtiv、両方、あるいはどちらでもないを参照しえる。
+
+	This is done by applying the necessary tivs to
+    the supplied types in the body of the rule.
+	これは必要なtivをそのルールのbody部内で提供された型に適用することでなされる。
+
+	For example, the equality rule for options is as follows.
+	例えば、optionの等値性規則は以下のようになる。
 
       val rule: 'a Type.t -> 'a option * 'a option -> bool =
          fn t =>
@@ -95,34 +141,52 @@ following properties:
 
   * The infrastructure automatically applies the inductive rules to
     build a tiv indexed at a particular type.
+	インフラは特定の型でインデックスされた tiv を構築するために帰納ルールを自動的に適用する。
 
   * Different tivs can be combined and used at the same type index.
+    異なるtivは同じ型インデックスついて結合して使うことが出来る。
 
   * Because the sets of tivs and type constructors are open and the
     inductive rules can be defined anywhere (or not at all), it is
-    dynamically checked whether the application of a tiv to a type
-    succeeds.  If needed, one can layer phantom witnesses on top to
+	tivと型コンストラクタの集合はオープンかつ帰納規則はどこでも定義出来る。
+
+    dynamically checked whether the application of a tiv to a type succeeds.
+	それは型へのtivの適用が成功したかどうかは動的に検査される。
+
+	If needed, one can layer phantom witnesses on top to
     statically ensure safety.
+	もし必要であれば、phantom witnessによって静的に安全性を保証する 事が出来る。
 
   * The application of a tiv to a type is staged so that one can
     cache the application of the inductive rules and so that one can
     get early (dynamic) warning if a tiv is not defined for a
     particular type.
+	tivの型への適用はステージされる（？）そのため、帰納ルールの適用はキャッシュ出来る
+	したがって、特定の型についてtivが定義されていない場合(動的な)警告がでるかも知れない。
 
   * Because rules can be defined anywhere, it is dynamically checked
     whether there have been multiple definitions of a rule for the
     same tiv and type constructor.
+	ルールはどこでも定義出来るため、
+	同じ tiv と型コンストラクタのための、ある型について複数の定義がなされているかが動的に検査される。
 
   * The implementation of tivs uses an extensible universal type
-    underneath.  The only uses of a universal type use constant-time
-    wrap and unwrap functions.
+    underneath.
+	tivの実装は表面化に拡張可能ユニバーサル型を使用する。
+	
+	The only uses of a universal type use constant-time wrap and unwrap functions.
+	ユニバーサル型の使用は定数時間のwrap/unwrap関数を使うだけである。
 
   * The implementation is portable SML and uses no unsafe features or
     extensions.
+	実装はポータブルなSMLであり、かつunsafeや拡張を使っていない。
 
-Below is an overview of how tivs are defined and used.  Attached to
-this note is a tgz with complete code for the implementation, all of
+Below is an overview of how tivs are defined and used.
+以下はどのようにtivが定義され、使用されるかの概要である。
+
+Attached to this note is a tgz with complete code for the implementation, all of
 the examples, and more.
+このノートに添付したのは実装の完全なコードと例の全て、その他のtgzである。
 
 ------------------------------------------------------------
 Using Type-Indexed Values
@@ -130,17 +194,27 @@ Using Type-Indexed Values
 
 Clients of tivs need to understand the following modules that are
 exposed by the library.
+tivのクライアントはライブラリの公開する以下のモジュールを理解する必要がある。
 
   structure Type: sig type 'a t end
   signature TYCON<n>
   signature TIV
 
-The Type structure declares the SML type whose values represent SML
-types.  There is a different TYCON<n> for each arity of type
-constructor.  For each SML type constructor (bool, option, list, ->,
+The Type structure declares the SML type whose values represent SML types.
+Type structure は SML型を表す値を持つSML型を定義する。
+
+There is a different TYCON<n> for each arity of type constructor.
+型コンストラクタの各アリティのための TYCON<n> がある。
+
+For each SML type constructor (bool, option, list, ->,
 etc.), one defines a representation of that type constructor as an SML
-structure matching a TYCON<n> signature of appropriate arity.  So,
-there will be structures like
+structure matching a TYCON<n> signature of appropriate arity.
+各SML型コンストラクタ(bool, option, list, ->, etc.)について、
+ある 適切なアリティの TYCON<n> signature にマッチするSML structureとして
+その型コンストラクタの表現を定義する。（？）
+
+So, there will be structures like
+よって、以下のようなstructureがあるだろう。
 
   structure BoolTycon: TYCON0
   structure IntTycon: TYCON0
@@ -151,6 +225,8 @@ there will be structures like
 Each TYCON signature specifies the SML type constructor it represents
 and an SML value that represents the type constructor, allowing one to
 construct representations of types built by the type constructor.
+各TYCON signatureはSML型コンストラクタと型コンストラクタを表現するSMLの値を特定し、(？)
+型コンストラクタによって型の表現を構成することを可能にする。
 
   signature TYCON0 =
      sig
@@ -174,8 +250,11 @@ construct representations of types built by the type constructor.
      end
 
 Every SML type is uniquely represented by applying the
-type-constructor representations.  For example, "bool -> int option"
-is represented by
+type-constructor representations.
+全てのSML型は型コンストラクタ表現の適用によって一意に表現される。
+
+For example, "bool -> int option" is represented by
+例えば、"bool -> int option" は以下のように表現される。
 
   val t: (bool -> int option) Type.t =
      ArrowTycon.ty (BoolTycon.ty, OptionTycon.ty IntTycon.ty)
