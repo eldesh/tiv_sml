@@ -1,0 +1,3 @@
+signature EMPTY =
+   sig
+   end

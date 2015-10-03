@@ -1,0 +1,20 @@
+
+TIV同人誌を書くためのサーベイ資料と原稿
+======================================
+
+SML/NJで動作確認
+
++ まずは以下の文書を訳して理解する。
+
+[MLton-user] a new approach to type-indexed values in SML
+attached file to...
+	http://mlton.org/pipermail/mlton-user/2006-September/000914.html
+
+参考: http://mlton.org/TypeIndexedValues
+
++ mltonlib内の実装も確認。
+
++ 解説記事を書く。
+
+
+

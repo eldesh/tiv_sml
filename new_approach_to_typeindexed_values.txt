@@ -1,0 +1,947 @@
+(* http://mlton.org/pipermail/mlton-user/2006-September/000916.html *)
+
+[MLton-user] a new approach to type-indexed values in SML
+Stephen Weeks sweeks at sweeks.com
+Thu Sep 28 15:58:59 PDT 2006
+
+    Previous message: [MLton-user] profiling timer expired?
+    Next message: [MLton-user] a new approach to type-indexed values in SML
+    Messages sorted by: [ date ] [ thread ] [ subject ] [ author ]
+
+Ever since Vesa posted the page on type-indexed values
+
+  http://mlton.org/TypeIndexedValues
+
+I've been thinking about how to define type-indexed values in a more
+modular/extensible way, closer to how Haskell type classes are done.
+The lack of first-class polymorphism in SML might make it seem
+impossible, but I've come up with an approach that I am happy with and
+I think will be useful in practice, once the initial infrastructure is
+digested.  The following note describes the approach.  I would be
+happy to answer questions or take feedback.
+
+----------------------------------------------------------------------
+
+A type-indexed value (tiv) is a set of values with one value for each
+type in a particular set of types.  A familiar example is equality,
+which can be viewed as a set of equality functions, one for each
+(equality) type.  Many type-indexed values can be defined by induction
+over type constructors.  For example, equality can be defined by
+primitive notions of equality at ground types (bool, int, etc.) and by
+induction at compound types (options, lists, tuples, etc.).
+
+This note shows a method to define tivs within SML that has the
+following properties:
+
+  * There is a single representation of types as values and a
+    one-to-one correspondence between the SML type "t" and its
+    representation as a value of type "t Type.t".  Here are some
+    example values representing types.
+
+      BoolTycon.ty: bool Type.t
+      ListTycon.ty BoolTycon.ty: bool list Type.t
+      ArrowTycon.ty (IntTycon.ty, BoolTycon.ty): (int -> bool) Type.t
+
+  * A tiv is a polymorphic function from (the representation of) types
+    to an ordinary SML value of the appropriate type.  For example,
+    equality has the following specification:
+
+      val equals: 'a Type.t -> 'a * 'a -> bool
+
+  * Users of tivs are statically prevented from making type errors.
+    For example, the following is a type error.
+
+      equals BoolTycon.ty (13, 14)
+
+  * A new type constructor of any arity can be defined at any 
+    toplevel-declaration point in the program, and can subsequently be
+    used to define tivs.
+
+  * Type constructors for mutable types (array, ref, etc.) and
+    recursive types (list) are supported as well as type constructors
+    for nonrecursive immutable types (option) and ground types (bool,
+    int, etc.).
+
+  * A new tiv can be declared at any toplevel-declaration point
+    in the program. 
+
+  * A tiv is inductively defined over type constructors by a global
+    collection of rules, with at most one rule for each type
+    constructor. 
+
+  * The inductive rule for a particular tiv and a particular type
+    constructor can be given at any toplevel-declaration point in the
+    program after the tiv and type constructor have been defined.  In
+    particular, one need neither group together all the rules for a
+    tiv nor group together all the rules for a type constructor.
+
+  * Each inductive rule is specified by a polymorphic function,
+    checked by the SML type system, mapping type(s) corresponding to
+    the type constructor's arguments to a value of the desired type.
+    An inductive rule for a tiv may refer to the same tiv, other tivs,
+    both, or neither.  This is done by applying the necessary tivs to
+    the supplied types in the body of the rule.  For example, the
+    equality rule for options is as follows.
+
+      val rule: 'a Type.t -> 'a option * 'a option -> bool =
+         fn t =>
+         let
+            val eltEquals = equals t
+         in
+            fn (NONE, NONE) => true
+             | (SOME x, SOME y) => eltEquals (x, y)
+             | _ => false
+         end
+
+  * The infrastructure automatically applies the inductive rules to
+    build a tiv indexed at a particular type.
+
+  * Different tivs can be combined and used at the same type index.
+
+  * Because the sets of tivs and type constructors are open and the
+    inductive rules can be defined anywhere (or not at all), it is
+    dynamically checked whether the application of a tiv to a type
+    succeeds.  If needed, one can layer phantom witnesses on top to
+    statically ensure safety.
+
+  * The application of a tiv to a type is staged so that one can
+    cache the application of the inductive rules and so that one can
+    get early (dynamic) warning if a tiv is not defined for a
+    particular type.
+
+  * Because rules can be defined anywhere, it is dynamically checked
+    whether there have been multiple definitions of a rule for the
+    same tiv and type constructor.
+
+  * The implementation of tivs uses an extensible universal type
+    underneath.  The only uses of a universal type use constant-time
+    wrap and unwrap functions.
+
+  * The implementation is portable SML and uses no unsafe features or
+    extensions.
+
+Below is an overview of how tivs are defined and used.  Attached to
+this note is a tgz with complete code for the implementation, all of
+the examples, and more.
+
+------------------------------------------------------------
+Using Type-Indexed Values
+------------------------------------------------------------
+
+Clients of tivs need to understand the following modules that are
+exposed by the library.
+
+  structure Type: sig type 'a t end
+  signature TYCON<n>
+  signature TIV
+
+The Type structure declares the SML type whose values represent SML
+types.  There is a different TYCON<n> for each arity of type
+constructor.  For each SML type constructor (bool, option, list, ->,
+etc.), one defines a representation of that type constructor as an SML
+structure matching a TYCON<n> signature of appropriate arity.  So,
+there will be structures like
+
+  structure BoolTycon: TYCON0
+  structure IntTycon: TYCON0
+  structure ListTycon: TYCON1
+  structure OptionTycon: TYCON1
+  structure ArrowTycon: TYCON2
+
+Each TYCON signature specifies the SML type constructor it represents
+and an SML value that represents the type constructor, allowing one to
+construct representations of types built by the type constructor.
+
+  signature TYCON0 =
+     sig
+        type t
+        ...
+        val ty: t Type.t
+     end
+  
+  signature TYCON1 =
+     sig
+        type 'a t
+        ...
+        val ty: 'a Type.t -> 'a t Type.t
+     end
+  
+  signature TYCON2 =
+     sig
+        type ('a1, 'a2) t
+        ...
+        val ty: 'a1 Type.t * 'a2 Type.t -> ('a1, 'a2) t Type.t
+     end
+
+Every SML type is uniquely represented by applying the
+type-constructor representations.  For example, "bool -> int option"
+is represented by
+
+  val t: (bool -> int option) Type.t =
+     ArrowTycon.ty (BoolTycon.ty, OptionTycon.ty IntTycon.ty)
+
+Each tiv is represented by a structure matching the TIV signature,
+whose key component is an "apply" function that applies the tiv to a
+type to yield an ordinary value.
+
+signature TIV =
+   sig
+      type 'a t
+      ...         
+      val apply: 'a Type.t -> 'a t
+   end
+
+Here are some standard tivs.
+
+structure Dummy: TIV where type 'a t = 'a
+structure Equals: TIV where type 'a t = 'a * 'a -> bool
+structure Flatten: TIV where type 'a t = 'a -> int list
+structure Show: TIV where type 'a t = 'a -> string
+structure SuperReverse: TIV where type 'a t = 'a -> 'a
+structure Taut: TIV where type 'a t = 'a -> bool
+
+Note that Equals, Flatten, SuperReverse, and Taut are partial,
+i.e. not defined for all types, but that this is not reflected in
+their types.
+
+To use a tiv, one simply applies it to the representation of the
+desired type.
+
+  val _: int option = Dummy.apply (Option.ty Int.ty)
+  val _: int list * int list -> bool = Equals.apply (List.ty Int.ty)
+  val _: int list list -> int list = Flatten.apply (List.ty (List.ty Int.ty))
+  val _: bool -> bool -> bool =
+     Taut.apply (Arrow.ty (Bool.ty, Arrow.ty (Bool.ty, Bool.ty)))
+  val _: 'a Type.t -> 'a -> int list =
+     fn ty => Flatten.apply ty o SuperReverse.apply ty
+
+The last example is the one from
+
+  http://mlton.org/References#Yang98
+
+showing why one wants to be able to compose different tivs dealing
+with the same type family.
+
+------------------------------------------------------------
+Declaring Type-Indexed Values
+------------------------------------------------------------
+
+One declares a new tiv by applying the Tiv functor.  The inductive
+rules are specified later.
+
+  functor Tiv (S: TIV_ARG): TIV
+
+  signature TIV_ARG =
+     sig
+        type 'a t
+           
+        val iso: ('a, 'b) Iso.t -> ('a t, 'b t) Iso.t
+        val name: string
+     end
+
+Type 'a t specifies the type of the type-indexed value once the
+type-index has been instantiated.  For example, for equality,
+
+   type 'a t = 'a * 'a -> bool
+
+The name is used solely for debugging messages.  The "iso" function
+tells how to lift an arbitrary isomorphism to an isomorphism between
+values.  An isomorphism is a pair of functions, one for each direction
+of the mapping.
+
+  structure Iso:>
+     sig
+        type ('a, 'b) t
+  
+        val inject: ('a, 'b) t * 'a -> 'b
+        val make: ('a -> 'b) * ('b -> 'a) -> ('a, 'b) t
+        val project: ('a, 'b) t * 'b -> 'a
+        ...
+     end
+
+Here is how the Dummy type-indexed value is declared.
+
+structure Dummy =
+   Tiv (type 'a t = 'a
+        val name = "dummy"
+        fun iso i = i)
+
+Here is how Equals is declared.  The isomorphism lifter uses some
+straightforward utilities from the Iso structure.
+
+structure Equals =
+   Tiv (type 'a t = 'a * 'a -> bool
+        val name = "equals"
+        fun iso i = let open Iso in arrow (tuple2 (i, i), id) end)
+
+At the point a tiv is declared, it is undefined for all types.  Later
+definitions of inductive rules determine the types at which the tiv is
+defined.
+
+------------------------------------------------------------
+Defining Nullary Type Constructors and Rules
+------------------------------------------------------------
+
+The library defines a functor, Tycon0, for building nullary type
+constructors.
+ 
+  functor Tycon0 (S: TYCON0_ARG): TYCON0
+
+  signature TYCON0_ARG =
+     sig
+        type t
+
+        val name: string
+     end
+
+For example, the bool type constructor is created by the following
+functor application, supplying the SML type being represented and the
+name, used only for debugging messages.
+
+  structure BoolTycon = Tycon0 (type t = bool
+                                val name = "bool")
+
+The library provides a family of functors, DefCase<n>, for defining
+inductive rules, one for each arity.  The functor for defining the
+rule for nullary type constructors is specified by the following.
+
+  signature EMPTY = sig end
+  functor DefCase0 (structure Tycon: TYCON0
+                    structure Value: TIV
+                    val rule: Tycon.t Value.t): EMPTY
+
+The EMPTY signature is used for modules that have no exports.  All of
+the DefCase<n> functors return an empty structure.  That is, they are
+functors that are applied purely for their side effect, namely, adding
+an inductive rule to the global collection of rules.  
+
+Here are the definitions of the rules for booleans for the Dummy and
+Equals tivs.
+
+  structure Z = DefCase0 (structure Tycon = BoolTycon
+                          structure Value = Dummy
+                          val rule = false)
+
+  structure Z = DefCase0 (structure Tycon = BoolTycon
+                          structure Value = Equals
+                          val rule = op =)
+
+The definition of equality uses SML's built-in polymorphic equality
+specialized for the particular case of booleans.  One could just as
+well have written
+
+  val rule = fn (false, false) => true 
+              | (true, true) => true 
+              | _ => false
+
+------------------------------------------------------------
+Defining Non-nullary Type Constructors and Inductive Rules
+------------------------------------------------------------
+
+The library provides a family of functors for defining the
+representations of type constructors, one for each arity.
+
+  functor Tycon<n> (S: TYCON<n>_ARG): TYCON<n>
+
+A new type constructor of arity <n> is defined by applying Tycon<n> to
+appropriate arguments.  Non-nullary type constructors are more
+complicated than nullary ones.  Before showing the most general case,
+I'll show two common special cases, provided as functors and
+implemented using the more general Tycon<n> functors.
+
+The simplest kind of type constructor is one that is immutable and not
+defined recursively (e.g. option).  These can be defined by the
+Tycon<n>Simple family of functors.
+
+  functor Tycon<n>Simple (S: TYCON<n>_SIMPLE_ARG): TYCON<n>_SIMPLE
+
+  signature TYCON<n>_SIMPLE_ARG =
+     sig
+        type ('a1, ..., 'a<n>) t
+         
+        val iso: ('a1, 'b1) Iso.t * ... * ('a<n>, 'b<n>) Iso.t
+                 -> (('a1, ..., 'a<n>) t, ('b1, ..., 'b<n>) t) Iso.t
+        val name: string
+     end
+
+Tycon<n>Simple is passed the SML type constructor being represented
+and a name used for debugging.  Additionally, one must supply a way to
+lift a product of isomorphisms, one for each type argument, to an
+isomorphism on the constructed type.  The result of Tycon<n>Simple is
+a specialized version of TYCON<n>.
+
+For example, here is how the option type constructor is represented.
+
+  structure OptionTycon =
+     Tycon1Simple (type 'a t = 'a option
+                   fun iso i =
+                      let
+                         fun map f =
+                            fn NONE => NONE
+                             | SOME x => SOME (f (i, x))
+                      in
+                         Iso.make (map Iso.inject, map Iso.project)
+                      end
+                   val name = "option")
+
+The library provides a family of functors, DefCase<n>Simple, for defining
+inductive rules for simple type constructors.
+
+  functor DefCase<n>Simple
+     (S: sig
+            structure Tycon: TYCON<n>_SIMPLE
+            structure Value: TIV
+            val rule: 'a1 Type.t * ... * 'a<n> Type.t 
+                      -> ('a1, ..., 'a<n>) Value.t
+         end): EMPTY
+
+Here are the inductive rules for the option type constructor for the
+Dummy and Equals tivs.
+
+  structure Z = DefCase1Simple (structure Tycon = OptionTycon
+                                structure Value = Dummy
+      	                        val rule: 'a Type.t -> 'a option =
+                                   fn t => SOME (Dummy.apply t))
+  structure Z = 
+     DefCase1Simple 
+     (structure Tycon = OptionTycon
+      structure Value = Equals
+      val rule: 'a Type.t -> 'a option * 'a option -> bool =
+         fn t =>
+         let
+            val eltEquals = Equals.apply t
+         in
+            fn (NONE, NONE) => true
+             | (SOME x, SOME y) => eltEquals (x, y)
+             | _ => false
+         end)
+
+Type constructors that define recursive types (e.g. list) need a
+slightly more complex definition, using the Tycon<n>Iso family of
+functors.
+
+  functor Tycon<n>Iso (S: TYCON<n>_ISO_ARG): TYCON<n>_ISO
+
+  signature TYCON<n>_ISO_ARG =
+     sig
+        structure R:
+           sig
+              type ('a1, ..., 'a<n>, 'r) t
+  
+              val iso:
+                 ('a1, 'b1) Iso.t * ... * ('a<n>, 'bn) Iso.t * ('ra, 'rb) Iso.t
+                 -> (('a1, ..., 'a<n>, 'ra) t, ('b1, ..., 'b<n>, 'rb) t) Iso.t
+           end
+  
+        type ('a1, ..., 'a<n>) t
+
+        val isorec: unit -> (('a1, ..., 'a<n>, ('a1, ..., 'a<n>) t) R.t,
+                             ('a1, ..., 'a<n>) t) Iso.t
+        val name: string
+     end
+
+The code uses the idea of recursion schemes:
+
+  http://mlton.org/References#WangMurphy
+
+The idea is that R.t is a non-recursive representation of the type,
+where its last type argument corresponds to recursive uses.  The
+isorec function gives the (trivial) isomorphism between the type and
+its recursion scheme.  For example, here is how the list type
+constructor is represented.
+
+  structure ListTyconRep =
+     struct
+        datatype ('a, 'r) t =
+           Cons of 'a * 'r
+         | Nil
+  
+        fun iso (ia, ir) =
+           let
+              fun map (fa, fr) =
+                 fn Cons (a, r) => Cons (fa (ia, a), fr (ir, r))
+                  | Nil => Nil
+           in
+              Iso.make (map (Iso.inject, Iso.inject),
+                        map (Iso.project, Iso.project))
+           end
+     end
+  
+  structure ListTycon =
+     Tycon1Iso
+     (structure R = ListTyconRep
+      type 'a t = 'a list
+      val name = "list"
+      fun isorec () = 
+         Iso.make (fn R.Cons (x, l) => x:: l | R.Nil => [],
+                   fn [] => R.Nil | x :: l => R.Cons (x, l)))
+
+The datatype ListTyconRep.t is exposed because the definition of an
+inductive rule for a list will deal with that representation rather
+than the native list representation.
+
+The library provides a family of functors, DefCase<n>Iso, for defining
+inductive rules for such type constructors.
+
+  functor DefCase<n>Iso
+     (structure Tycon: TYCON<n>_ISO
+      structure Value: TIV
+      val rule: 'a1 Type.t * ... * 'a<n> Type.t 
+                * (('a1, ..., 'a<n>, 'b) Tycon.R.t, 'b) Iso.t
+                -> 'b Value.t): EMPTY
+
+For example, here are the inductive rules for the list type
+constructor for the Dummy and Equals tivs.
+
+  structure Z =
+     DefCase1Iso
+     (structure Tycon = ListTycon
+      structure Value = Dummy
+      fun rule (t, i) =
+         Iso.inject (i, Cons (Dummy.apply t, Iso.inject (i, Nil))))
+  
+  structure Z =
+     DefCase1Iso
+     (structure Tycon = ListTycon
+      structure Value = Equals
+      fun rule (t, i) =
+         let
+            val elt = Equals.apply t
+         in
+            fn z =>
+            recur (z, fn ((b1, b2), loop) =>
+                   case (Iso.project (i, b1), Iso.project (i, b2)) of
+                      (Nil, Nil) => true
+                    | (Cons (x1, b1), Cons (x2, b2)) =>
+                         elt (x1, x2) andalso loop (b1, b2)
+                    | _ => false)
+         end)
+
+Mutable types can not be represented via an isomorphism since that
+would lose the sharing that is essential to mutability.  For mutable
+types we need a generalization of recursion schemes in which the type
+constructor is represented by an abstract type, typically a record of
+operations, that can be wrapped by isomorphisms.
+
+  functor Tycon<n> (S: TYCON<n>_ARG): TYCON<n>
+
+  signature TYCON<N>_ARG =
+     sig
+        structure Rep:
+           sig
+              type ('a1, ..., 'a<n>, 'b) t
+           end
+  
+        type ('a1, ..., 'a<n>) t
+           
+        val makeRep: ('a1, 'b1) Iso.t
+                     * ...
+                     * ('a<n>, 'b<n>) Iso.t
+                     * (('a1, ..., 'a<n>) t, 'c) Iso.t 
+                     -> ('b1, ..., 'b<n>, 'c) Rep.t
+        val name: string
+     end
+
+To apply functor Tycon<n>, in addition to specifying the underlying
+SML type constructor (t) and the debugging name, one also specifies a
+representation (Rep.t) of values of the type and a way to create a
+representation (makeRep) from isomorphisms on each of the type
+arguments and an isomorphism on the type itself.  
+
+For example, here is how SML's "ref" type constructor is implemented.
+
+  structure RefRep =
+     struct
+        datatype ('a, 'b) t =
+           T of {get: 'b -> 'a, 
+                 equals: 'b * 'b -> bool,
+                 make: 'a -> 'b,
+                 set: 'b * 'a -> unit}
+     end
+
+  structure RefTycon =
+     Tycon1
+     (structure Rep = RefRep
+      type 'a t = 'a ref
+      val name = "ref"
+      fun makeRep (ix, ir) =
+         RefRep.T
+         {get = fn r => Iso.inject (ix, ! (Iso.project (ir, r))),
+          equals = (fn (r, r') =>
+                    (Iso.project (ir, r) = Iso.project (ir, r')
+                    handle _ => false)),
+          make = fn x => Iso.inject (ir, ref (Iso.project (ix, x))),
+          set = fn (r, x) => Iso.project (ir, r) := Iso.project (ix, x)})
+
+The idea is that RefRep provides a "generic" implementation of ref
+cells, where 'a is the representation of the element and 'b is
+representation of the cell.  makeRep show how to use the underlying
+SML primitives to build the generic representation, given the
+isomorphism on the underlying elements (ix) and the isomorphism on
+ref cells (ir).
+
+The fully general DefCase<n> functors have the following form.
+
+  functor DefCase<n>
+     (structure Tycon: TYCON<n>
+      structure Value: TIV
+      val rule: 'a1 Type.t * ... * 'a<n> Type.t
+                * ('a1, ..., 'a<n>, 'b) Tycon.Rep.t
+                * ('b, Univ.t) Iso.t
+                -> 'b Value.t)): EMPTY
+
+The idea is that, as before, a rule takes each of the type arguments
+and can use them inductively as it wishes.  In addition, the rule
+receives the generic representation of values and must produce an
+instance of the tiv, 'b Value.t, that operates on that representation.
+For example, here are the inductive rules for the ref type constructor
+for the Dummy and Equals tivs.
+
+  structure Z =
+     DefCase1
+     (structure Tycon = RefTycon
+      structure Value = Dummy
+      fun rule (t, RefRep.T {make, ...}, _) = make (Dummy.apply t))
+            
+  structure Z =
+     DefCase1
+     (structure Tycon = RefTycon
+      structure Value = Equals
+      fun rule (_, RefRep.T {equals, ...}, _) = equals)
+
+In DefCase<n> functors, the third argument to the rule, of type ('b,
+Univ.t) Iso.t, gives the rule access to an embedding of the value in a
+universal type.  This is useful for tivs like Show, which need to keep
+a container holding values of different types.
+
+Sometimes it is useful to define a default case for a tiv.  This is
+easily done using the DefDefault functor.
+
+  functor DefDefault (structure Value: TIV
+                      val rule: 'a Type.t -> 'a Value.t): EMPTY
+
+The default case will then be used for any type constructor that
+doesn't have a rule defined for the tiv.
+
+------------------------------------------------------------
+The Variable-Arity Tuple Type Constructor
+------------------------------------------------------------
+
+The library defines functions for building representations of tuple
+types of different arities.
+
+  val ty<n>: 'a1 Type.t * ... * 'a<n> Type.t -> ('a1 * ... * 'a<n>) Type.t
+
+The tuple type-constructor in SML can either be viewed a family of
+type constructors (two-tuple, three-tuple, etc.) or as a single
+variable-arity type constructor.  The latter view is much more
+convenient for the purpose of defining tivs.  The library defines a
+functor, DefTupleCase, that allows one to give a single rule that
+defines how a tiv should behave for tuples of any arity.
+
+  functor DefTupleCase
+     (structure Accum:
+         sig
+            type 'a t
+  
+            val iso: ('a, 'b) Iso.t -> ('a t, 'b t) Iso.t
+         end
+      structure Value: TIV
+      val base: unit Accum.t
+      val finish: 'a Accum.t -> 'a Value.t
+      val step: 'a Type.t * 'b Accum.t -> ('a * 'b) Accum.t): EMPTY
+
+The idea is that DefTupleCase is doing a fold over the components of
+the tuple type, starting with a "base" accumulator, building the
+accumulator with "step", and converting the accumulator to a value of
+the right type with "finish".
+
+Here are the definitions of the rules for tuples for the Dummy and
+Equals tivs.
+  
+  structure Z =
+     DefTupleCase
+     (structure Accum = Dummy
+      structure Value = Dummy
+      val base = ()
+      val finish = id
+      fun step (t, ac) = (Dummy.apply t, ac))
+  
+  structure Z =
+     DefTupleCase
+     (structure Accum = Equals
+      structure Value = Equals
+      fun base _ = true
+      val finish = id
+      fun step (a, equalsR) =
+         let
+            val equalsA = Equals.apply a
+         in
+            fn ((a1, r1), (a2, r2)) =>
+            equalsA (a1, a2) andalso equalsR (r1, r2)
+         end)
+
+Those rules don't need the accumulator.  For an example that does, see
+the rule for Show in the full code.
+
+------------------------------------------------------------
+Partial tivs and Witnesses
+------------------------------------------------------------
+
+Because type constructors can be added at an time, the framework does
+not statically guarantee correctness of the application of a tiv to a
+type.  One can uses phantom witnesses to statically ensure safety if
+needed.  For example, tautology checking only works on types of the
+form
+
+  bool -> bool -> ... -> bool
+
+One can inductively define this type family and represent the fact
+that a type is in the family with an additional type constructor, Ok.t
+and two value constructors as follows.
+
+  structure Ok:
+     sig
+        type 'a t
+  
+        val bool: bool Type.t t
+        val arrow: 'a Type.t t -> (bool -> 'a) Type.t t
+      end
+
+One can then constrain the partial tautology-checking tiv to represent
+it safely via the following type.
+
+   val taut: 'a Type.t * 'a Type.t Ok.t -> 'a -> bool
+
+Clients of taut are now required to prove that the supplied type is in
+the required family, and hence no runtime exception can be raised.
+Below is the complete definition of a safe tautology tiv.  This code
+also demonstrates the use of the arrow type constructor, as well as
+giving an example of one tiv (Taut) calling another (FromBool) in a
+rule.
+
+  structure Taut:>
+     sig
+        structure Ok:
+           sig
+              type 'a t
+  
+              val bool: bool Type.t t
+              val arrow: 'a Type.t t -> (bool -> 'a) Type.t t
+           end
+  
+        val taut: 'a Type.t * 'a Type.t Ok.t -> 'a -> bool
+     end =
+     struct
+        structure Ok =
+           struct
+              type 'a t = unit
+  
+              val bool = ()
+              val arrow = ignore
+           end
+  
+        structure FromBool =
+           Tiv (type 'a t = bool -> 'a
+                fun iso i = let open Iso in arrow (id, i) end
+                val name = "fromBool")
+  
+        structure Z =
+           DefCase0 (structure Tycon = BoolTycon
+                     structure Value = FromBool
+                     val rule = id)
+  
+        structure Taut =
+           Tiv (type 'a t = 'a -> bool
+                fun iso i = let open Iso in arrow (i, id) end
+                val name = "taut")
+  
+        structure Z =
+           DefCase0 (structure Tycon = BoolTycon
+                     structure Value = Taut
+                     val rule = id)
+           
+        structure Z =
+           DefCase2Simple
+           (structure Tycon = ArrowTycon
+            structure Value = Taut
+            fun rule (ta, tb) =
+               let
+                  val arg = FromBool.apply ta
+                  val res = Taut.apply tb
+               in
+                  fn f => let
+                             fun one b = res (f (arg b))
+                          in
+                             one true andalso one false
+                          end
+               end)
+               
+        fun taut (t, _) = Taut.apply t
+     end
+
+------------------------------------------------------------
+Underlying Implementation
+------------------------------------------------------------
+
+The implementation of all of the modules (TYCON, TIV, Tycon<n>, Tiv,
+DefCase<n>, etc.) is about 600 lines of SML code.
+
+The key module in the implementation is
+
+  structure RawTiv:> RAW_TIV
+
+Here's most of the RAW_TIV signature, which provides an interface to
+tivs that allows one to create new tivs, apply tivs to types, and
+define inductive rules.
+
+  signature RAW_TIV =
+     sig
+        structure Type:
+           sig
+              structure Raw:
+                 sig
+                    type t
+                 end
+              
+              type 'a t
+     
+              val apply: 'a Tycon.t * Raw.t list * (('b, Univ.t) Iso.t -> 'a) 
+                         -> 'b t
+              val iso: 'a t -> ('a, Univ.t) Iso.t
+              val make: Raw.t * ('a, Univ.t) Iso.t -> 'a t
+              val raw: 'a t -> Raw.t
+           end
+
+        type 'a t
+
+        val apply: 'a t * Type.Raw.t -> 'a
+        val make: {name: string} -> 'a t
+        val defCase: 'a t * 'b Tycon.t * (Type.Raw.t list * 'b -> 'a) -> unit
+        val defDefault: 'a t * (Type.Raw.t -> 'a) -> unit
+     end
+
+A value of type 'a t is a tiv that produces a value of type 'a when
+applied.  Of course, a tiv exposed to the client has a different type
+depending on the type index at which it is used, e.g.
+  
+   Equals.apply BoolTycon.ty: bool * bool -> bool
+   Equals.apply IntTycon.ty: int * int -> bool
+
+This is handled by storing with each type representation an
+isomorphism (Type.iso) between that type and a universal type Univ.t
+using the usual exn wrap/unwrap trick.  Then, a tiv of type 'a t is
+implemented as a raw tiv of type Univ.t t.  For example, underneath,
+the equals tiv has type
+
+   (Univ.t * Univ.t -> bool) RawTiv.t
+
+The infrastructure coerces the application of a raw tiv to a value of
+the appropriate type by lifting the isomorphism on the appropriate
+type to an isomorphism on the value using the iso function that was
+supplied by the user when defining the tiv.
+
+The trickiest part of the implementation deals with the apparent
+conflict between the absence of first-class polymorphism in SML and
+the need to apply the user-supplied inductive rules at any number of
+types.  The solution involves a kind of poor-man's first-class
+polymorphism in which the rules are actually only ever instantiated at
+one type, Univ.t, and handle arbitrary types by dealing with
+universally-wrapped representations built from the representations
+supplied by the user when defining type constructors.  See
+def-case.fun in the implementation for details -- that code makes it
+clear that the use of functors to require that rules be polymorphic is
+an illusion (albeit a very useful one).
+
+Raw tivs themselves are deceptively simple.  The keep a list ref with
+one element (a function) for each type constructor that has a rule.
+DefCase simply pushes a rule on the list, after checking that no rule
+is already defined.  Application of a raw tiv to a type looks up the
+correct rule in the list and applies the associated rule.
+
+------------------------------------------------------------
+Related Work: Yang98
+------------------------------------------------------------
+
+  http://mlton.org/References#Yang98
+
+describes two styles of tivs in SML: value dependent and value
+independent.  In short, with the value-dependent style, for each tiv
+one creates a new family of type indexes where each type index is the
+tiv at the corresponding type.  This is the style (currently) used on
+
+  http://mlton.org/TypeIndexedValues
+
+and in Vesa's recent note expanding on the idea in Yang98 showing how
+to use products of tivs so that one can use the same family of types
+for multiple tivs.
+
+  http://mlton.org/pipermail/mlton-user/2006-August/000907.html
+ 
+In the value-independent style, one uses a single family of types and
+allows as many tivs as one wants to be defined for the family.  This
+is a superior approach to the value-dependent approach because it
+easier to add new tivs and because tivs are automatically composable
+-- one isn't forced to collect together the tivs into a product.
+
+Yang98 describes two approaches to implementing value-independent
+tivs.  The first approach requires first-class and higher-order
+polymorphism and is expressed using an extension of the SML module
+system.  The second approach implements tivs by converting values to a
+specially constructed universal type, running an ordinary recursive
+SML function on the universal type, and then converting back. The
+approach described in this note is roughly similar to Yang's first
+approach, in that one defines rules by polymorphic functions and
+(seemingly) passes them around to be used at different types.  The
+main improvement of this note is that the implementation is in
+ordinary SML and is achieved through a combination of by using
+universal wrappers, recursion-scheme-like encoding tricks, and
+illusory functors.
+
+Yang's second approach also uses universal wrappers, but the
+similarity with the use of universals in this note is superficial.
+Yang requires a single mutually recursive datatype definition of the
+universal type, while in this note, the universal type is extensible
+and is not specified in any one place.  Yang's approach requires the
+user to define a different universal type for each type family, and
+doesn't allow the addition of new type constructors in a modular way.
+This note uses a single type family and allows the definitions of
+tivs, type constructors, and rules to occur anywhere at top level.
+Yang's approach also uses deep coercion functions between ordinary SML
+values and values of his universal type, which take time proportional
+to the size of the data structure being coerced. This is inefficient
+and doesn't work with mutable values.  This note uses only
+constant-time wrappers and unwrappers, and handles mutable values
+smoothly.
+
+------------------------------------------------------------
+Future Work
+------------------------------------------------------------
+
+The ideas in this note may solve the problem with embedding datatypes
+that Benton encountered in "Embedded Interpreters"
+
+  http://mlton.org/References#Benton05
+
+The ideas also give me more confidence that we will be able to build
+specialized interpreters with MLton that are able to expose host
+polymorphic functions to the interpreter, while maintaining full speed
+of the host code.  The trick this note uses to wrap up polymorphic
+functions in a universal type, while retaining their ability to apply
+to values of different types (appropriately wrapped and represented)
+seems like it may be just the thing to do automatically when building
+the specialized interpreter.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: tiv.tgz
+Type: application/octet-stream
+Size: 10168 bytes
+Desc: not available
+Url : http://mlton.org/pipermail/mlton-user/attachments/20060928/adfc123d/tiv-0001.obj
+
+    Previous message: [MLton-user] profiling timer expired?
+    Next message: [MLton-user] a new approach to type-indexed values in SML
+    Messages sorted by: [ date ] [ thread ] [ subject ] [ author ]
+
+More information about the MLton-user mailing list
