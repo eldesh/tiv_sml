@@ -266,7 +266,7 @@ For example, "bool -> int option" is represented by
 Each tiv is represented by a structure matching the TIV signature,
 whose key component is an "apply" function that applies the tiv to a
 type to yield an ordinary value.
-各 tiv は TIV signature にマッチする structure によって表現され、
+各 tiv は ``TIV`` signature にマッチする structure によって表現され、
 そのキーとなる部分は通常の値を得るためにそのtivを型に適用する ``apply``  関数である。
 
 ::
@@ -475,19 +475,30 @@ Defining Non-nullary Type Constructors and Inductive Rules
 
 The library provides a family of functors for defining the
 representations of type constructors, one for each arity.
+ライブラリは各アリティのための型コンストラクタの表現を定義するためのファンクターの族を提供する。
 
+::
   functor Tycon<n> (S: TYCON<n>_ARG): TYCON<n>
 
 A new type constructor of arity <n> is defined by applying Tycon<n> to
-appropriate arguments.  Non-nullary type constructors are more
-complicated than nullary ones.  Before showing the most general case,
+appropriate arguments.
+新たなアリティ<n>の型コンストラクタは ``Tycon<n>`` を適切な引数に適用することで定義される。
+
+Non-nullary type constructors are more complicated than nullary ones.
+非nullary型コンストラクタはnullaryのそれより複雑である。
+
+Before showing the most general case,
 I'll show two common special cases, provided as functors and
 implemented using the more general Tycon<n> functors.
+最も一般的な場合を示す前に、ファンクタとして提供され、より一般的な ``Tycon<n>`` ファンクタを使用して実装される2つの一般的な特殊ケースを示す。
 
 The simplest kind of type constructor is one that is immutable and not
 defined recursively (e.g. option).  These can be defined by the
+最も単純な種類の型コンストラクタは immutable かつ非再帰的(例えば option)。
 Tycon<n>Simple family of functors.
+これらは ``Tycon<n>Simple`` ファンクタファミリーによって定義される。
 
+::
   functor Tycon<n>Simple (S: TYCON<n>_SIMPLE_ARG): TYCON<n>_SIMPLE
 
   signature TYCON<n>_SIMPLE_ARG =
@@ -500,13 +511,21 @@ Tycon<n>Simple family of functors.
      end
 
 Tycon<n>Simple is passed the SML type constructor being represented
-and a name used for debugging.  Additionally, one must supply a way to
+and a name used for debugging.
+``Tycon<n>Simple`` はSML型コンストラクタに渡され表現され、nameがデバッグに使われる。
+
+Additionally, one must supply a way to
 lift a product of isomorphisms, one for each type argument, to an
-isomorphism on the constructed type.  The result of Tycon<n>Simple is
-a specialized version of TYCON<n>.
+isomorphism on the constructed type.
+さらに、各型引数について、isomorphismsの直積を構成された型上のisomorphismへ持ち上げる方法を提供しなければならない。
+
+The result of Tycon<n>Simple is a specialized version of TYCON<n>.
+``Tycon<n>Simple`` の結果は ``TYCON<n>`` を特化したものである。？？
 
 For example, here is how the option type constructor is represented.
+例えば、これは ``option`` 型コンストラクタがどのように表現されるかである。
 
+::
   structure OptionTycon =
      Tycon1Simple (type 'a t = 'a option
                    fun iso i =
@@ -521,7 +540,9 @@ For example, here is how the option type constructor is represented.
 
 The library provides a family of functors, DefCase<n>Simple, for defining
 inductive rules for simple type constructors.
+ライブラリはファンクタ族、 ``DefCase<n>Simple`` を単純な型コンストラクタの機能ルールを定義するために提供する。
 
+::
   functor DefCase<n>Simple
      (S: sig
             structure Tycon: TYCON<n>_SIMPLE
@@ -532,7 +553,9 @@ inductive rules for simple type constructors.
 
 Here are the inductive rules for the option type constructor for the
 Dummy and Equals tivs.
+これは ``Dummy`` と ``Equals`` tiv のための ``option`` 型コンストラクタのための帰納ルールである。
 
+::
   structure Z = DefCase1Simple (structure Tycon = OptionTycon
                                 structure Value = Dummy
       	                        val rule: 'a Type.t -> 'a option =
@@ -554,7 +577,11 @@ Dummy and Equals tivs.
 Type constructors that define recursive types (e.g. list) need a
 slightly more complex definition, using the Tycon<n>Iso family of
 functors.
+再帰型(例えば ``list`` )を定義する型コンストラクタはわずかに複雑な定義を必要とし、
+ファンクタ ``Tycon<n>Iso`` 族を使用する。
 
+
+::
   functor Tycon<n>Iso (S: TYCON<n>_ISO_ARG): TYCON<n>_ISO
 
   signature TYCON<n>_ISO_ARG =
@@ -580,11 +607,17 @@ The code uses the idea of recursion schemes:
   http://mlton.org/References#WangMurphy
 
 The idea is that R.t is a non-recursive representation of the type,
-where its last type argument corresponds to recursive uses.  The
-isorec function gives the (trivial) isomorphism between the type and
-its recursion scheme.  For example, here is how the list type
-constructor is represented.
+where its last type argument corresponds to recursive uses.
+アイデアは、 ``R.t`` は型の非再帰表現であり、ここでその最後の片引き数は再帰的な使用に対応する。
 
+The isorec function gives the (trivial) isomorphism between the type and
+its recursion scheme.
+``isorec`` 関数は、その型とそのリカージョンスキームの間の(自明な) isomorphismを与える。
+
+For example, here is how the list type constructor is represented.
+例えば、これは ``list`` 型コンストラクタがどのように表されるかである。
+
+::
   structure ListTyconRep =
      struct
         datatype ('a, 'r) t =
@@ -614,10 +647,14 @@ constructor is represented.
 The datatype ListTyconRep.t is exposed because the definition of an
 inductive rule for a list will deal with that representation rather
 than the native list representation.
+``datatype ListTyconRep.t`` が公開されているのは、リストについての機能ルールの定義が
+ネイティブリスト表現よりむしろ表現に取り組むだろう…？？？
 
 The library provides a family of functors, DefCase<n>Iso, for defining
 inductive rules for such type constructors.
+ライブラリはファンクタ族、 ``DefCase<n>Iso`` をそのような型コンストラクタの機能ルールの定義のために提供する。
 
+::
   functor DefCase<n>Iso
      (structure Tycon: TYCON<n>_ISO
       structure Value: TIV
@@ -627,7 +664,9 @@ inductive rules for such type constructors.
 
 For example, here are the inductive rules for the list type
 constructor for the Dummy and Equals tivs.
+例えば、これは ``list`` 型コンストラクタの ``Dummy`` と ``Equals`` tiv のための帰納ルールである。
 
+::
   structure Z =
      DefCase1Iso
      (structure Tycon = ListTycon
