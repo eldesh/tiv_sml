@@ -692,11 +692,16 @@ constructor for the Dummy and Equals tivs.
          end)
 
 Mutable types can not be represented via an isomorphism since that
-would lose the sharing that is essential to mutability.  For mutable
-types we need a generalization of recursion schemes in which the type
+would lose the sharing that is essential to mutability.
+mutable type は isomorphism では表現出来ない mutability にとって必須である共有を失うためである。
+
+For mutable types we need a generalization of recursion schemes in which the type
 constructor is represented by an abstract type, typically a record of
 operations, that can be wrapped by isomorphisms.
+mutable typeのためには、型コンストラクタが抽象型、伝統的には操作のレコード、これは isomorphism でラップ出来る、
+で表現される recursion scheme の一般化が必要？？？
 
+::
   functor Tycon<n> (S: TYCON<n>_ARG): TYCON<n>
 
   signature TYCON<N>_ARG =
@@ -721,9 +726,13 @@ SML type constructor (t) and the debugging name, one also specifies a
 representation (Rep.t) of values of the type and a way to create a
 representation (makeRep) from isomorphisms on each of the type
 arguments and an isomorphism on the type itself.  
+ファンクタ ``Tycon<n>`` を適用するには、下層のSML型コンストラクタ ``t`` とデバッグ名に加えて、
+その型の値の表現 ``Rep.t`` と各型引数上での isomorphism とその型自身の isomorphism から表現 ``makeRep`` を作る方法も指定する。
 
 For example, here is how SML's "ref" type constructor is implemented.
+例えば、これは SMLの ``ref`` 型コンストラクタが実装される。
 
+::
   structure RefRep =
      struct
         datatype ('a, 'b) t =
@@ -749,13 +758,19 @@ For example, here is how SML's "ref" type constructor is implemented.
 
 The idea is that RefRep provides a "generic" implementation of ref
 cells, where 'a is the representation of the element and 'b is
-representation of the cell.  makeRep show how to use the underlying
-SML primitives to build the generic representation, given the
-isomorphism on the underlying elements (ix) and the isomorphism on
-ref cells (ir).
+representation of the cell.
+アイデアは ``RefRep`` がrefセルの "一般的な" 実装を提供し、ここで ``'a`` が要素の表現かつ ``'b`` がセルの表現である。
+
+makeRep show how to use the underlying SML primitives to build the generic representation, given the
+isomorphism on the underlying elements (ix) and the isomorphism on ref cells (ir).
+``makeRep`` は下層のSMLプリミティブを使用して一般的な表現を構築する方法を示し、
+下層要素(ix)上のisomorphismとrefセル(ir)のisomorphismが与えられる。
+
 
 The fully general DefCase<n> functors have the following form.
+完全に一般化した ``DefCase<n>`` ファンクタは以下のような形になる。
 
+::
   functor DefCase<n>
      (structure Tycon: TYCON<n>
       structure Value: TIV
@@ -765,12 +780,19 @@ The fully general DefCase<n> functors have the following form.
                 -> 'b Value.t)): EMPTY
 
 The idea is that, as before, a rule takes each of the type arguments
-and can use them inductively as it wishes.  In addition, the rule
-receives the generic representation of values and must produce an
+and can use them inductively as it wishes.
+アイデアは、既に述べたように、各型引数を受け取り望むように帰納的に使うことが出来る？？？
+
+In addition, the rule receives the generic representation of values and must produce an
 instance of the tiv, 'b Value.t, that operates on that representation.
+加えて、その規則は値の一般表現を受け取り、その表現上で操作する（？）その tiv、 ``'b Value.t`` のインスタンスを生成しなければならない。？？？
+
+
 For example, here are the inductive rules for the ref type constructor
 for the Dummy and Equals tivs.
+例えば、これは ``Dummy`` と ``Equals`` tivのためのref型コンストラクタのための帰納規則である。
 
+::
   structure Z =
      DefCase1
      (structure Tycon = RefTycon
@@ -785,17 +807,27 @@ for the Dummy and Equals tivs.
 
 In DefCase<n> functors, the third argument to the rule, of type ('b,
 Univ.t) Iso.t, gives the rule access to an embedding of the value in a
-universal type.  This is useful for tivs like Show, which need to keep
+universal type.
+``DefCase<n>`` ファンクタ内では、規則への第3引数、('b, Univ.t) Iso.t、
+universal 型の値の埋め込みへのアクセスを与える。？？
+
+This is useful for tivs like Show, which need to keep
 a container holding values of different types.
+これは ``Show`` のような tiv に便利です。
+これは異なる型の値を保持するコンテナを維持するために必要。
 
 Sometimes it is useful to define a default case for a tiv.  This is
 easily done using the DefDefault functor.
+時々、tiv にデフォルトケースを定義するのは便利である。
+これは ``DefDefault`` ファンクタを使うことで容易に行うことが出来る。
 
+::
   functor DefDefault (structure Value: TIV
                       val rule: 'a Type.t -> 'a Value.t): EMPTY
 
 The default case will then be used for any type constructor that
 doesn't have a rule defined for the tiv.
+デフォルトケースはその tiv のために定義された規則を持たないどんな型コンストラクタのためにも使用されるだろう。
 
 ------------------------------------------------------------
 The Variable-Arity Tuple Type Constructor
@@ -803,16 +835,23 @@ The Variable-Arity Tuple Type Constructor
 
 The library defines functions for building representations of tuple
 types of different arities.
+ライブラリは異なる引数のタプル型の表現を構築する関数を定義する。
 
+::
   val ty<n>: 'a1 Type.t * ... * 'a<n> Type.t -> ('a1 * ... * 'a<n>) Type.t
 
 The tuple type-constructor in SML can either be viewed a family of
-type constructors (two-tuple, three-tuple, etc.) or as a single
-variable-arity type constructor.  The latter view is much more
-convenient for the purpose of defining tivs.  The library defines a
-functor, DefTupleCase, that allows one to give a single rule that
-defines how a tiv should behave for tuples of any arity.
+type constructors (two-tuple, three-tuple, etc.) or as a single variable-arity type constructor.
+SMLのタプル型コンストラクタは(2-タプル、3-タプル、他)の型コンストラクタ族または単一の可変アリティ型コンストラクタのどちらとも見なすことが出来る。
 
+The latter view is much more convenient for the purpose of defining tivs.
+後者の視点はtivを定義する目的に置いてははるかに便利である。
+
+The library defines a functor, DefTupleCase, that allows one to give a single rule that
+defines how a tiv should behave for tuples of any arity.
+ライブラリは、任意のアリティのタプルのためにどのようにtivが振る舞うべきかを定義する単一規則を与えることを許す ``DefTupleCase`` ファンクタ を定義する。
+
+::
   functor DefTupleCase
      (structure Accum:
          sig
@@ -829,10 +868,13 @@ The idea is that DefTupleCase is doing a fold over the components of
 the tuple type, starting with a "base" accumulator, building the
 accumulator with "step", and converting the accumulator to a value of
 the right type with "finish".
+アイデアは ``DefTupleCase`` はタプル型の要素上で畳み込みを行う、*base* アキュムレータから始め、
+*step* によってアキュムレータを構築し、*finish* によってアキュムレータを正しい型の値に変換する。
 
-Here are the definitions of the rules for tuples for the Dummy and
-Equals tivs.
-  
+Here are the definitions of the rules for tuples for the Dummy and Equals tivs.
+これが ``Dummy`` と ``Equals`` tivのタプルについての規則の定義である。
+
+::
   structure Z =
      DefTupleCase
      (structure Accum = Dummy
@@ -857,23 +899,35 @@ Equals tivs.
 
 Those rules don't need the accumulator.  For an example that does, see
 the rule for Show in the full code.
+それらの規則はアキュムレータを必要としない。
+それを行う例としてはコード内の ``Show`` の規則をみよ。
 
 ------------------------------------------------------------
 Partial tivs and Witnesses
 ------------------------------------------------------------
 
 Because type constructors can be added at an time, the framework does
-not statically guarantee correctness of the application of a tiv to a
-type.  One can uses phantom witnesses to statically ensure safety if
-needed.  For example, tautology checking only works on types of the
-form
+not statically guarantee correctness of the application of a tiv to a type.
+型コンストラクタは一度追加出来るため、フレームワークは tiv の型への適用の正しさを静的に保証しない。
 
+One can uses phantom witnesses to statically ensure safety if needed.
+もし必要ならphantom witnessを使うことで静的に安全性を保証出来る。
+
+For example, tautology checking only works on types of the form
+例えば、トートロジー検査は形
+
+::
   bool -> bool -> ... -> bool
+
+の型上でのみ動作する。
 
 One can inductively define this type family and represent the fact
 that a type is in the family with an additional type constructor, Ok.t
 and two value constructors as follows.
+この型族を帰納的に定義し、追加の型コンストラクタを伴う族の ある型 という事実を表現することが出来る。
+``Ok.t`` と2つの値コンストラクタは以下
 
+::
   structure Ok:
      sig
         type 'a t
@@ -884,16 +938,25 @@ and two value constructors as follows.
 
 One can then constrain the partial tautology-checking tiv to represent
 it safely via the following type.
+部分トートロジー検証 tiv を制約してそれが安全なことを以下の型を通して表現することが出来る。
 
+::
    val taut: 'a Type.t * 'a Type.t Ok.t -> 'a -> bool
 
 Clients of taut are now required to prove that the supplied type is in
 the required family, and hence no runtime exception can be raised.
-Below is the complete definition of a safe tautology tiv.  This code
-also demonstrates the use of the arrow type constructor, as well as
-giving an example of one tiv (Taut) calling another (FromBool) in a
-rule.
+``taut`` のクライアントは与えられた型が要求される族で、かつ従って実行時例外が投げられ得ないことを
+証明されたことを要求される。
 
+Below is the complete definition of a safe tautology tiv.
+以下は安全なトートロジー tiv の完全な定義である。
+
+This code also demonstrates the use of the arrow type constructor, as well as
+giving an example of one tiv (Taut) calling another (FromBool) in a rule.
+このコードはまた ルール内でもう一つ (``FromBool``) を呼ぶ tiv (``Taut``) の例を与えるのと同様に
+arrow 型コンストラクタの使用の実例でもある。
+
+::
   structure Taut:>
      sig
         structure Ok:
@@ -960,15 +1023,21 @@ Underlying Implementation
 
 The implementation of all of the modules (TYCON, TIV, Tycon<n>, Tiv,
 DefCase<n>, etc.) is about 600 lines of SML code.
+モジュール(``TYCON``, ``TIV``, ``Tycon<n>``, ``Tiv``, ``DefCase<n>``, etc)の全ての実装は約600行のSMLコードである。
 
 The key module in the implementation is
+実装内でキーとなるモジュールは
 
+::
   structure RawTiv:> RAW_TIV
 
 Here's most of the RAW_TIV signature, which provides an interface to
-tivs that allows one to create new tivs, apply tivs to types, and
-define inductive rules.
+tivs that allows one to create new tivs, apply tivs to types, and define inductive rules.
+これは ``RAW_TIV`` シグネチャのほとんどは、それが 新たな tiv を作成することを許す tiv へのインターフェースを提供する ？？？
+tiv の型への適用、そして帰納規則の定義。
 
+
+::
   signature RAW_TIV =
      sig
         structure Type:
@@ -995,43 +1064,76 @@ define inductive rules.
         val defDefault: 'a t * (Type.Raw.t -> 'a) -> unit
      end
 
-A value of type 'a t is a tiv that produces a value of type 'a when
-applied.  Of course, a tiv exposed to the client has a different type
+A value of type 'a t is a tiv that produces a value of type 'a when applied.
+型 ``'a t`` の値は tiv であり、適用された時に型 ``'a`` の値を生成する。
+
+Of course, a tiv exposed to the client has a different type
 depending on the type index at which it is used, e.g.
-  
+もちろん、tiv は使用された箇所でのtype indexに依存して異なる型を持つクライアントへ公開する（？）例えば：
+
+::
    Equals.apply BoolTycon.ty: bool * bool -> bool
    Equals.apply IntTycon.ty: int * int -> bool
 
 This is handled by storing with each type representation an
 isomorphism (Type.iso) between that type and a universal type Univ.t
-using the usual exn wrap/unwrap trick.  Then, a tiv of type 'a t is
-implemented as a raw tiv of type Univ.t t.  For example, underneath,
-the equals tiv has type
+using the usual exn wrap/unwrap trick.
+これはそれぞれの型表現について、通常 ``exn`` wrap/unwrap トリックを使うことで 型とユニバーサル型 ``Univ.t`` の間の isomorphism (``Type.iso``) を保持することで扱われる。
 
+Then, a tiv of type 'a t is implemented as a raw tiv of type Univ.t t.
+次に、 型 ``'a`` の tivは型 ``Univ.t t`` の raw tiv として実装される。
+
+For example, underneath, the equals tiv has type
+例えば、表面化では、equals tiv は型
+
+::
    (Univ.t * Univ.t -> bool) RawTiv.t
+
+を持つ。
 
 The infrastructure coerces the application of a raw tiv to a value of
 the appropriate type by lifting the isomorphism on the appropriate
 type to an isomorphism on the value using the iso function that was
 supplied by the user when defining the tiv.
+インフラストラクチャは適切な型上のisomorphismを その tiv を定義する時にユーザによって提供される ``iso`` 関数を使うことで
+値上のisomorphismに持ち上げることによって raw tivの適切な型の値への適用を強制する。
 
 The trickiest part of the implementation deals with the apparent
 conflict between the absence of first-class polymorphism in SML and
-the need to apply the user-supplied inductive rules at any number of
-types.  The solution involves a kind of poor-man's first-class
+the need to apply the user-supplied inductive rules at any number of types.
+実装の最もトリッキーなのは SMLのファーストクラスポリモーフィズムの欠如と
+幾つもの型のユーザの提供した帰納的規則を提供する必要のある ことの間での明らかな衝突に取り組む部分である。
+
+The solution involves a kind of poor-man's first-class
 polymorphism in which the rules are actually only ever instantiated at
 one type, Univ.t, and handle arbitrary types by dealing with
 universally-wrapped representations built from the representations
-supplied by the user when defining type constructors.  See
-def-case.fun in the implementation for details -- that code makes it
+supplied by the user when defining type constructors.
+解決策は一種の poor-man's first-class polymorphism を実行することだ。
+その規則は実質的にこれまでに1つの型 ``Univ.t`` のみでインスタンス化され、
+型コンストラクタを定義する時にユーザに提供された表現から構築された universally-wrapped 表現
+に取り組むことで 任意の型を扱う。
+
+See def-case.fun in the implementation for details -- that code makes it
 clear that the use of functors to require that rules be polymorphic is
 an illusion (albeit a very useful one).
+詳細は実装内の ``def-case.fun`` を参照して下さい -- そのコードは分かるように説明する
+ファンクタの使用は 規則が多相になることを要求する ことはイリュージョン（？）
 
-Raw tivs themselves are deceptively simple.  The keep a list ref with
-one element (a function) for each type constructor that has a rule.
+Raw tivs themselves are deceptively simple.
+Raw tiv 自身は 実は単純である。
+
+The keep a list ref with one element (a function) for each type constructor that has a rule.
+1つの規則を持った各型コンストラクタの1つの要素(関数)を伴うref リストを維持する？？？
+
 DefCase simply pushes a rule on the list, after checking that no rule
-is already defined.  Application of a raw tiv to a type looks up the
+is already defined.
+``DefCase`` は既に規則が定義されていないかを検証した後に、そのリストに単純にプッシュする。
+
+Application of a raw tiv to a type looks up the
 correct rule in the list and applies the associated rule.
+raw tiv の型への適用はリスト内で正しい規則を調べ、かつ関連する規則を適用する。
+
 
 ------------------------------------------------------------
 Related Work: Yang98
