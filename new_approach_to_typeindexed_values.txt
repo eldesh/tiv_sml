@@ -14,10 +14,15 @@ Ever since Vesa posted the page on type-indexed values
 
 I've been thinking about how to define type-indexed values in a more
 modular/extensible way, closer to how Haskell type classes are done.
+私はどのように type-indexed values をHaskellの型クラスのように、
+よりモジュラー/拡張可能な方法で定義するか について考えてきました。
+
+
 The lack of first-class polymorphism in SML might make it seem
 impossible, but I've come up with an approach that I am happy with and
-I think will be useful in practice, once the initial infrastructure is
-digested.
+I think will be useful in practice, once the initial infrastructure is digested.
+SMLのファーストクラスポリモーフィズムの欠如によってそれが不可能に見えるかも知
+れないが、私はあるアプローチを考えついた。…？？
 一度最初のインフラがこなれてくれば実践で役に立つだろうと思う。
 
 The following note describes the approach.  I would be
@@ -29,7 +34,7 @@ happy to answer questions or take feedback.
 
 A type-indexed value (tiv) is a set of values with one value for each
 type in a particular set of types.
-tivとは型の特性セット内の、一つの値を持つ各型の集合である。
+tivとは型の特定セット内の、各型について1つの値からなる値の集合である。
 
 A familiar example is equality,
 which can be viewed as a set of equality functions, one for each
@@ -58,6 +63,7 @@ following properties:
 	１対１対応がある。
 	以下は型を表現する値のいくつかの例である。
 
+  ::
       BoolTycon.ty: bool Type.t
       ListTycon.ty BoolTycon.ty: bool list Type.t
       ArrowTycon.ty (IntTycon.ty, BoolTycon.ty): (int -> bool) Type.t
@@ -69,6 +75,7 @@ following properties:
     equality has the following specification:
 	例えば、等値性は以下のような仕様を持つ。
 
+  ::
       val equals: 'a Type.t -> 'a * 'a -> bool
 
   * Users of tivs are statically prevented from making type errors.
@@ -76,6 +83,7 @@ following properties:
     For example, the following is a type error.
 	例えば以下は型エラーである。
 
+  ::
       equals BoolTycon.ty (13, 14)
 
   * A new type constructor of any arity can be defined at any 
@@ -105,7 +113,7 @@ following properties:
     constructor can be given at any toplevel-declaration point in the
     program after the tiv and type constructor have been defined.
 	特定のtivと特定の型コンストラクタについての帰納ルールはプログラム上のトップレベル定義ポイントの
-	とこでも与えることが出来る。tivと型コンストラクタが定義された後なら。
+	どこでも与えることが出来る。tivと型コンストラクタが定義された後なら。
 
 	In particular, one need neither group together all the rules for a
     tiv nor group together all the rules for a type constructor.
@@ -129,6 +137,7 @@ following properties:
 	For example, the equality rule for options is as follows.
 	例えば、optionの等値性規則は以下のようになる。
 
+    ::
       val rule: 'a Type.t -> 'a option * 'a option -> bool =
          fn t =>
          let
@@ -172,7 +181,7 @@ following properties:
 
   * The implementation of tivs uses an extensible universal type
     underneath.
-	tivの実装は表面化に拡張可能ユニバーサル型を使用する。
+	tivの実装は表面下に拡張可能ユニバーサル型を使用する。
 	
 	The only uses of a universal type use constant-time wrap and unwrap functions.
 	ユニバーサル型の使用は定数時間のwrap/unwrap関数を使うだけである。
@@ -207,12 +216,12 @@ Type structure は SML型を表す値を持つSML型を定義する。
 There is a different TYCON<n> for each arity of type constructor.
 型コンストラクタの各アリティのための TYCON<n> がある。
 
-For each SML type constructor (bool, option, list, ->,
-etc.), one defines a representation of that type constructor as an SML
+For each SML type constructor (bool, option, list, ->, etc.),
+one defines a representation of that type constructor as an SML
 structure matching a TYCON<n> signature of appropriate arity.
 各SML型コンストラクタ(bool, option, list, ->, etc.)について、
-ある 適切なアリティの TYCON<n> signature にマッチするSML structureとして
-その型コンストラクタの表現を定義する。（？）
+ある適切なアリティの TYCON<n> signature にマッチするSML structureとして
+その型コンストラクタの表現を定義する。
 
 So, there will be structures like
 よって、以下のようなstructureがあるだろう。
@@ -397,7 +406,7 @@ Defining Nullary Type Constructors and Rules
 ------------------------------------------------------------
 
 The library defines a functor, Tycon0, for building nullary type constructors.
-ライブラリがfunctor ``Tycon0`` をnullary型コンストラクタの構築のために定義する。
+ライブラリは functor ``Tycon0`` をnullary型コンストラクタの構築のために定義している。
 
 ::
   functor Tycon0 (S: TYCON0_ARG): TYCON0
@@ -1141,54 +1150,102 @@ Related Work: Yang98
 
   http://mlton.org/References#Yang98
 
-describes two styles of tivs in SML: value dependent and value
-independent.  In short, with the value-dependent style, for each tiv
+describes two styles of tivs in SML: value dependent and value independent.
+SMLでの2つの tiv のスタイルを説明している：value dependent と value independent である。
+
+In short, with the value-dependent style, for each tiv
 one creates a new family of type indexes where each type index is the
-tiv at the corresponding type.  This is the style (currently) used on
+tiv at the corresponding type.
+短く言うと、value dependent スタイルを用いると、各 tiv について type indexの新しい族を作る
+ここで各 type index は 対応する型の tiv である。
+
+This is the style (currently) used on
+これは(現在)
 
   http://mlton.org/TypeIndexedValues
+
+で使われているスタイルであり、
 
 and in Vesa's recent note expanding on the idea in Yang98 showing how
 to use products of tivs so that one can use the same family of types
 for multiple tivs.
+Vesaの最近のノートは Yang98 でのアイデアを更に詳しく述べている
+tiv の製品をどのように使うかを示している。従って、複数の tiv についての型の同じ族を使うことが出来る。
+
 
   http://mlton.org/pipermail/mlton-user/2006-August/000907.html
  
 In the value-independent style, one uses a single family of types and
-allows as many tivs as one wants to be defined for the family.  This
-is a superior approach to the value-dependent approach because it
+allows as many tivs as one wants to be defined for the family.
+value independet スタイルでは、型の単一の族を使い、…？？？
+
+This is a superior approach to the value-dependent approach because it
 easier to add new tivs and because tivs are automatically composable
 -- one isn't forced to collect together the tivs into a product.
+これは value-dependent アプローチの上位のアプローチである。なぜならそれは
+新しい tiv の追加が簡単であり tiv が自動的にコンポーザブルだからである。
+/ -- one isn't forced to collect together the tivs into a product. ？？？
 
-Yang98 describes two approaches to implementing value-independent
-tivs.  The first approach requires first-class and higher-order
-polymorphism and is expressed using an extension of the SML module
-system.  The second approach implements tivs by converting values to a
+Yang98 describes two approaches to implementing value-independent tivs.
+Yang98 では value-independent tiv の2つの実装のアプローチを説明する。
+
+The first approach requires first-class and higher-order
+polymorphism and is expressed using an extension of the SML module system.
+最初のアプローチは、SMLモジュールシステムの拡張の使用として表現される
+1stクラスかつ高階な多相を要求する。
+
+The second approach implements tivs by converting values to a
 specially constructed universal type, running an ordinary recursive
-SML function on the universal type, and then converting back. The
-approach described in this note is roughly similar to Yang's first
+SML function on the universal type, and then converting back.
+二つ目のアプローチは値を特別に構成されたユニバーサル型へ変換することで tiv を実装する、
+ユニバーサル型上での普通の再帰的SML関数を動かし、逆変換する？
+
+
+The approach described in this note is roughly similar to Yang's first
 approach, in that one defines rules by polymorphic functions and
-(seemingly) passes them around to be used at different types.  The
-main improvement of this note is that the implementation is in
+(seemingly) passes them around to be used at different types.
+このノートで述べられたアプローチはおおざっぱにYangの最初のアプローチに似ている。
+
+The main improvement of this note is that the implementation is in
 ordinary SML and is achieved through a combination of by using
 universal wrappers, recursion-scheme-like encoding tricks, and
 illusory functors.
+このノートの主な改善点は、実装が通常のSMLであり、ユニバーサルラッパー、recursion-schemeライクエンコーディングトリック、幻影ファンクタの使用の組み合わせにより改善されたことである。
+
 
 Yang's second approach also uses universal wrappers, but the
 similarity with the use of universals in this note is superficial.
+Yangの二つ目のアプローチもまたユニバーサルラッパーを使う、しかしこのノート内のユニバーサルの使用による類似は表面的なモノである。
+
 Yang requires a single mutually recursive datatype definition of the
 universal type, while in this note, the universal type is extensible
-and is not specified in any one place.  Yang's approach requires the
+and is not specified in any one place.
+Yangはユニバーサルタイプの単一の相互再帰データ型定義を要求し、一方このノートでは、
+ユニバーサルタイプは拡張可能であり、かつ一箇所で指定されない。
+
+Yang's approach requires the
 user to define a different universal type for each type family, and
 doesn't allow the addition of new type constructors in a modular way.
+Yangのアプローチはユーザに、各型族について異なるユニバーサルタイプの定義を要求する
+モジュラーな方法での新しい型コンストラクタの追加は許さない。
+
 This note uses a single type family and allows the definitions of
 tivs, type constructors, and rules to occur anywhere at top level.
+このノートは単一の型族を使用し、かつ tiv の定義、型コンストラクタ、トップレベルのどこでも現れる規則を許す。
+
+
 Yang's approach also uses deep coercion functions between ordinary SML
 values and values of his universal type, which take time proportional
-to the size of the data structure being coerced. This is inefficient
-and doesn't work with mutable values.  This note uses only
-constant-time wrappers and unwrappers, and handles mutable values
-smoothly.
+to the size of the data structure being coerced.
+Yangのアプローチもまた通常のSMLの値とユニバーサルタイプの値の間のディープコアージョン(?)を使う。
+コアージョンされるデータ構造のサイズに比例した時間がかかる。
+
+
+This is inefficient and doesn't work with mutable values.
+これは非効率かつ変更可能な値では動作しない。
+
+This note uses only constant-time wrappers and unwrappers, and handles mutable values smoothly.
+このノートは定数時間ラッパーとアンラッパーのみを使い、変更可能な値も易々と扱う。
 
 ------------------------------------------------------------
 Future Work
@@ -1196,17 +1253,26 @@ Future Work
 
 The ideas in this note may solve the problem with embedding datatypes
 that Benton encountered in "Embedded Interpreters"
+このノートのアイデアは Bentonが "Embedded Interpreters" で遭遇した埋め込みデータ型の問題を解決するかも知れない。
 
   http://mlton.org/References#Benton05
 
 The ideas also give me more confidence that we will be able to build
 specialized interpreters with MLton that are able to expose host
-polymorphic functions to the interpreter, while maintaining full speed
-of the host code.  The trick this note uses to wrap up polymorphic
+polymorphic functions to the interpreter, while maintaining full speed of the host code.
+そのアイデアはまた我々がホストの多相関数をインタプリタに公開出来、さらにホストコードのフルスピードを維持する特化したインタプリタをMLtonによって構築出来るようになる自信を与る。
+
+
+The trick this note uses to wrap up polymorphic
 functions in a universal type, while retaining their ability to apply
 to values of different types (appropriately wrapped and represented)
 seems like it may be just the thing to do automatically when building
 the specialized interpreter.
+このノートのトリックはユニバーサルタイプへの多相関数のラップを使用しており、
+特化したインタプリタを構築した時に それはちょうど自動で行われるように見える
+(適切にラップされ表現された)異なる型の値に適用出来る能力を維持している。(？？？)
+
+
 
 -------------- next part --------------
 A non-text attachment was scrubbed...
@@ -1221,3 +1287,4 @@ Url : http://mlton.org/pipermail/mlton-user/attachments/20060928/adfc123d/tiv-00
     Messages sorted by: [ date ] [ thread ] [ subject ] [ author ]
 
 More information about the MLton-user mailing list
+
