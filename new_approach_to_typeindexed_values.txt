@@ -79,7 +79,7 @@ following properties:
       val equals: 'a Type.t -> 'a * 'a -> bool
 
   * Users of tivs are statically prevented from making type errors.
-    tivのユーザは型エラーを静的に防がなければならない。
+    tivのユーザは型エラーを静的に防がれる。
     For example, the following is a type error.
 	例えば以下は型エラーである。
 
@@ -430,7 +430,7 @@ name, used only for debugging messages.
 
 The library provides a family of functors, DefCase<n>, for defining
 inductive rules, one for each arity.
-ライブラリは functor ``DefCase<n>`` 族を各アリティのために帰納ルールを定義するために提供する。
+ライブラリは functor ``DefCase<n>`` 族を、各アリティのために帰納ルールを定義するために提供する。
 
 The functor for defining the
 rule for nullary type constructors is specified by the following.
@@ -617,7 +617,7 @@ The code uses the idea of recursion schemes:
 
 The idea is that R.t is a non-recursive representation of the type,
 where its last type argument corresponds to recursive uses.
-アイデアは、 ``R.t`` は型の非再帰表現であり、ここでその最後の片引き数は再帰的な使用に対応する。
+アイデアは、 ``R.t`` は型の非再帰表現であり、ここでその最後の型引き数は再帰的な使用に対応する。
 
 The isorec function gives the (trivial) isomorphism between the type and
 its recursion scheme.
@@ -656,12 +656,12 @@ For example, here is how the list type constructor is represented.
 The datatype ListTyconRep.t is exposed because the definition of an
 inductive rule for a list will deal with that representation rather
 than the native list representation.
-``datatype ListTyconRep.t`` が公開されているのは、リストについての機能ルールの定義が
+``datatype ListTyconRep.t`` が公開されているのは、リストについての帰納ルールの定義が
 ネイティブリスト表現よりむしろ表現に取り組むだろう…？？？
 
 The library provides a family of functors, DefCase<n>Iso, for defining
 inductive rules for such type constructors.
-ライブラリはファンクタ族、 ``DefCase<n>Iso`` をそのような型コンストラクタの機能ルールの定義のために提供する。
+ライブラリはファンクタ族、 ``DefCase<n>Iso`` をそのような型コンストラクタの帰納ルールの定義のために提供する。
 
 ::
   functor DefCase<n>Iso
