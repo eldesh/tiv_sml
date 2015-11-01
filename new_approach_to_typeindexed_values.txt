@@ -817,7 +817,7 @@ for the Dummy and Equals tivs.
 In DefCase<n> functors, the third argument to the rule, of type ('b,
 Univ.t) Iso.t, gives the rule access to an embedding of the value in a
 universal type.
-``DefCase<n>`` ファンクタ内では、規則への第3引数、('b, Univ.t) Iso.t、
+``DefCase<n>`` ファンクタ内では、関数 ``rule`` への第3引数、('b, Univ.t) Iso.t、
 universal 型の値の埋め込みへのアクセスを与える。？？
 
 This is useful for tivs like Show, which need to keep
