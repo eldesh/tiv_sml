@@ -1,0 +1,7 @@
+group
+  structure StringTycon
+is
+  util.cm
+  tiv.cm
+  dummy-equals-show.cm
+  string-tycon.sml

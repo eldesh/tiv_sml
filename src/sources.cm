@@ -10,6 +10,7 @@ is
   arrow-tycon.cm
   bool-tycon.cm
   int-tycon.cm
+  string-tycon.cm
   nat-tycon.cm
   list-tycon.cm
   option-tycon.cm
