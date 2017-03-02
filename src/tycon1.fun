@@ -1,16 +1,15 @@
+
 functor Tycon1 (S: TYCON1_ARG): TYCON1 =
 struct
+  open S
 
-open S
+  type u = (Univ.t, Univ.t) Rep.t
 
-type u = (Univ.t, Univ.t) Rep.t
-
-val tycon: u Tycon.t = Tycon.make {name = name}
-         
-fun ty at =
-   Type.apply (tycon, [Type.raw at], fn iso =>
-               makeRep (Type.iso at, iso))
-
+  val tycon: u Tycon.t = Tycon.make {name = name}
+		   
+  fun ty at =
+	 Type.apply (tycon, [Type.raw at], fn iso =>
+				 makeRep (Type.iso at, iso))
 end
 
 functor Tycon1Iso (S: TYCON1_ISO_ARG): TYCON1_ISO =

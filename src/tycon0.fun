@@ -1,12 +1,12 @@
+
 functor Tycon0 (S: TYCON0_ARG): TYCON0 =
 struct
+  open S
 
-open S
+  type u = unit
 
-type u = unit
+  val tycon: u Tycon.t = Tycon.make {name = name}
 
-val tycon: u Tycon.t = Tycon.make {name = name}
-
-val ty: t Type.t = Type.apply (tycon, [], Util.const ())
-         
+  val ty: t Type.t = Type.apply (tycon, [], Util.const ())
 end
+
