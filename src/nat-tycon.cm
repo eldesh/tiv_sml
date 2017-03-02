@@ -1,0 +1,9 @@
+group
+  structure NatTyconRep
+is
+  util.cm
+  tiv.cm
+  dummy.cm
+  equals.cm
+  show.cm
+  nat-tycon.sml
