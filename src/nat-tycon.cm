@@ -1,9 +1,12 @@
 group
   structure NatTyconRep
+  structure NatTycon
+  structure Nat
 is
   util.cm
   tiv.cm
   dummy.cm
   equals.cm
   show.cm
+  nat.sml
   nat-tycon.sml

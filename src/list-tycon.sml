@@ -1,20 +1,19 @@
 
 structure ListTyconRep =
-   struct
-      datatype ('a, 'r) t =
-         Cons of 'a * 'r
-       | Nil
+struct
+  datatype ('a, 'r) t = Cons of 'a * 'r
+                      | Nil
 
-      fun iso (ia, ir) =
-         let
-            fun map (fa, fr) =
-               fn Cons (a, r) => Cons (fa (ia, a), fr (ir, r))
-                | Nil => Nil
-         in
-            Iso.make (map (Iso.inject, Iso.inject),
-                      map (Iso.project, Iso.project))
-         end
-   end
+  fun iso (ia, ir) =
+    let
+      fun map (fa, fr) =
+        fn Cons (a, r) => Cons (fa (ia, a), fr (ir, r))
+         | Nil => Nil
+    in
+      Iso.make (map (Iso.inject, Iso.inject),
+                map (Iso.project, Iso.project))
+    end
+end
 
 datatype z = datatype ListTyconRep.t
 
@@ -26,6 +25,7 @@ structure ListTycon =
     fun isorec () = 
        Iso.make (fn Cons (x, l) => x:: l | Nil => [],
                  fn [] => Nil | x :: l => Cons (x, l)))
+
 structure Z =
    DefCase1Iso
    (structure Tycon = ListTycon
@@ -53,7 +53,7 @@ structure Z =
 (**
  * import from show.sml
  *)
-fun seq (pre, suf, l) =
+fun seq (pre, suf, l) : string Sequence.t =
    let
       open Sequence
    in
@@ -61,17 +61,18 @@ fun seq (pre, suf, l) =
    end
 
 structure Z =
-   DefCase1Iso
-   (structure Tycon = ListTycon
-    structure Value = Show
-    fun rule (t, iso) =
+  DefCase1Iso
+    (structure Tycon = ListTycon
+     structure Value = Show
+     fun rule (t, iso) =
        let
-          val elt = Show.apply t
+         val elt = Show.apply t
        in
-          fn (b, seen) =>
-          seq ("[", "]",
-               Util.recur ((b, []), fn ((b, ac), loop) =>
-                      case Iso.project (iso, b) of
-                         Nil => rev ac
-                       | Cons (x, l) => loop (l, elt (x, seen) :: ac)))
+         fn (b, seen) =>
+           seq ("[", "]",
+             Util.recur ((b, []), fn ((b, ac), loop) =>
+               case Iso.project (iso, b)
+                 of Nil => rev ac
+                  | Cons (x, l) => loop (l, elt (x, seen) :: ac)))
        end)
+

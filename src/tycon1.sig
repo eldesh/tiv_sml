@@ -63,7 +63,6 @@ sig
   val name: string
 end
 
-
 signature TYCON1_SIMPLE =
 sig
   type 'a t
@@ -83,3 +82,4 @@ sig
   val ty: 'a Type.t -> 'a t Type.t
   val tycon: u Tycon.t
 end
+

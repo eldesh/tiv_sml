@@ -27,3 +27,4 @@ sig
   val defCase : 'a t * 'b Tycon.t * (Type.Raw.t list * 'b -> 'a) -> unit
   val defDefault : 'a t * (Type.Raw.t -> 'a) -> unit
 end
+

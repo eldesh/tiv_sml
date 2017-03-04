@@ -83,8 +83,7 @@ struct
   end
 
   datatype 'a t =
-     T of {cases: ((Tycon.Name.t * (Type.Raw.t list * Tycon.Univ.t -> 'a))
-                   list ref),
+     T of {cases: (Tycon.Name.t * (Type.Raw.t list * Tycon.Univ.t -> 'a)) list ref,
            default: (Type.Raw.t -> 'a) option ref,
            name: string}
            

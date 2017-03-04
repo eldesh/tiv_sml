@@ -1,4 +1,4 @@
-structure Main: EMPTY =
+structure Main (*: EMPTY *) =
 struct
 
 val dummy = Dummy.apply
@@ -18,18 +18,19 @@ val flatten = Flatten.apply
 val superReverse = SuperReverse.apply
 
 structure Type =
-   struct
-      val array = ArrayTycon.ty
-      val arrow = ArrowTycon.ty
-      val bool = BoolTycon.ty
-      val int = IntTycon.ty
-      val list = ListTycon.ty
-      val option = OptionTycon.ty
-      val real = RealTycon.ty
-      val reff = RefTycon.ty
-      val tuple2 = TupleTycon.ty2
-      val tuple3 = TupleTycon.ty3
-   end
+struct
+  val array = ArrayTycon.ty
+  val arrow = ArrowTycon.ty
+  val bool = BoolTycon.ty
+  val int = IntTycon.ty
+  val list = ListTycon.ty
+  val option = OptionTycon.ty
+  val real = RealTycon.ty
+  val reff = RefTycon.ty
+  val tuple2 = TupleTycon.ty2
+  val tuple3 = TupleTycon.ty3
+  val nat = NatTycon.ty
+end
 
 local
    open Type

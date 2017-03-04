@@ -13,27 +13,27 @@ struct
 end
 
 functor Tycon1Iso (S: TYCON1_ISO_ARG): TYCON1_ISO =
-   struct
-      structure T =
-         Tycon1
-         (open S
-          structure Rep =
-             struct
-                type ('a, 'b) t = (('a, 'b) R.t, 'b) Iso.t
-             end
-          fun makeRep (ia, ita) =
-             Iso.compose (Iso.flip (R.iso (ia, ita)),
-                          Iso.compose (isorec (), ita)))
-      open S T
-   end
+struct
+  structure T =
+    Tycon1
+     (open S
+      structure Rep =
+      struct
+        type ('a, 'b) t = (('a, 'b) R.t, 'b) Iso.t
+      end
+      fun makeRep (ia, ita) =
+        Iso.compose (Iso.flip (R.iso (ia, ita)),
+                     Iso.compose (isorec (), ita)))
+  open S T
+end
              
 functor Tycon1Simple (S: TYCON1_SIMPLE_ARG): TYCON1_ISO =
-   Tycon1Iso
-   (structure R =
-       struct
-          type ('a, 'b) t = 'a S.t
+  Tycon1Iso
+  (structure R =
+   struct
+     type ('a, 'b) t = 'a S.t
+     fun iso (i, _) = S.iso i
+   end
+   open S
+   fun isorec () = Iso.id)
 
-          fun iso (i, _) = S.iso i
-       end
-    open S
-    fun isorec () = Iso.id)

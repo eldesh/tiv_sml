@@ -1,24 +1,4 @@
 
-structure Nat =
-struct
-  datatype t = Zero
-             | Succ of t
-
-  fun toInt Zero = 0
-    | toInt (Succ n) = 1 + toInt n
-
-  fun fromInt 0 = Zero
-    | fromInt n = if 0 < n then Succ(fromInt n)
-                  else raise Domain
-
-  fun compare (n,m) =
-    case (n,m)
-      of (Zero  ,Zero  ) => General.EQUAL
-       | (Succ _,Zero  ) => General.LESS
-       | (Zero  ,Succ _) => General.GREATER
-       | (Succ n,Succ m) => compare (n,m)
-end
-
 structure NatTyconRep =
 struct
   datatype 'r t = Zero | Succ of 'r
@@ -34,16 +14,52 @@ struct
   end
 end
 
+datatype z = datatype NatTyconRep.t
+
 structure NatTycon =
-struct
-  (*
   Tycon0Iso
     (structure R = NatTyconRep
      type t = Nat.t
      val name = "nat"
      fun isorec () =
        Iso.make (fn R.Succ r=>Nat.Succ r | R.Zero=>Nat.Zero
-               , fn Nat.Zero=>R.Zero | fn Nat.Succ r=>R.Succ r))
-               *)
-end
+               , fn Nat.Zero=>R.Zero | Nat.Succ r=>R.Succ r))
+
+
+structure Z =
+  DefCase0Iso
+    (structure Tycon = NatTycon
+     structure Value = Dummy
+     fun rule (i:('b Tycon.R.t, 'b) Iso.t) : 'b Value.t =
+       Iso.inject (i, Succ (Iso.inject (i, Zero)))
+    )
+
+
+structure Z =
+  DefCase0Iso
+    (structure Tycon = NatTycon
+     structure Value = Equals
+     fun rule i =
+       fn z =>
+         Util.recur (z, fn ((b1,b2), loop) =>
+           case (Iso.project(i, b1), Iso.project(i,b2))
+             of (Zero, Zero) => true
+              | (Succ n, Succ m) => loop (n, m)
+              | _ => false)
+    )
+
+
+structure Z =
+  DefCase0Iso
+    (structure Tycon = NatTycon
+     structure Value = Show
+     fun rule iso =
+       fn (b, seen) =>
+         Sequence.seq (
+           Util.recur ((b, []), fn ((b, ac), loop) =>
+             case Iso.project (iso, b)
+               of Zero => rev (Sequence.one "Z" :: ac)
+                | Succ l => loop (l, Sequence.one "S(" :: ac) @ [Sequence.one ")"])
+         )
+    )
 

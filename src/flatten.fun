@@ -16,19 +16,20 @@ struct
   datatype z = datatype ListTyconRep.t
 
   structure Z =
-     DefCase1Iso
+    DefCase1Iso
      (structure Tycon = ListTycon
       structure Value = Flatten
       fun rule (t, iso) =
-         let
-            val flattenElt = Flatten.apply t
-         in
-            fn l =>
+        let
+          val flattenElt = Flatten.apply t
+        in
+          fn l =>
             Util.recur (l, fn (l, loop) =>
-                   case Iso.project (iso, l) of
-                      Nil => []
-                    | Cons (x, l) => flattenElt x @ loop l)
-         end)
+              case Iso.project (iso, l) of
+                   Nil => []
+                 | Cons (x, l) => flattenElt x @ loop l)
+        end)
 
   open Flatten
 end             
+
