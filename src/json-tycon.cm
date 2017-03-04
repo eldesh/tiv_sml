@@ -1,0 +1,12 @@
+group
+  structure JsonTyconRep
+  structure JsonTycon
+  structure JSON
+is
+  util.cm
+  tiv.cm
+  dummy.cm
+  equals.cm
+  show.cm
+  json.sml
+  json-tycon.sml

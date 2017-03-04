@@ -10,8 +10,11 @@ is
   arrow-tycon.cm
   bool-tycon.cm
   int-tycon.cm
+  largeint-tycon.cm
   string-tycon.cm
   nat-tycon.cm
+  json-tycon.cm
+  toJson.cm
   list-tycon.cm
   option-tycon.cm
   real-tycon.cm
