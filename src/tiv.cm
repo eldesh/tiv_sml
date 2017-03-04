@@ -1,5 +1,7 @@
 group
   functor DefCase0
+  functor DefCase0Iso
+  functor DefCase0Simple
   functor DefCase1
   functor DefCase1Iso
   functor DefCase1Simple
@@ -10,6 +12,8 @@ group
   functor DefTupleCase
   functor Tiv
   functor Tycon0
+  functor Tycon0Iso
+  functor Tycon0Simple
   functor Tycon1
   functor Tycon1Iso
   functor Tycon1Simple
@@ -18,10 +22,14 @@ group
   functor Tycon2Simple
   signature TIV
   signature TYCON0
+  signature TYCON0_ISO
+  signature TYCON0_SIMPLE
   signature TYCON1
   signature TYCON1_ISO
+  signature TYCON1_SIMPLE
   signature TYCON2
   signature TYCON2_ISO
+  signature TYCON2_SIMPLE
   structure TupleTycon
   structure Type
 is
@@ -35,7 +43,9 @@ is
   tycon1.fun
   tycon2.sig
   tycon2.fun
-  def-case.fun
+  def-case0.fun
+  def-case1.fun
+  def-case2.fun
   def-default.fun
   tuple-tycon.sml
   def-tuple-case.fun

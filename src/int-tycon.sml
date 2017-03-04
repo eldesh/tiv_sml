@@ -1,5 +1,6 @@
-structure IntTycon = Tycon0 (type t = int
-                             val name = "int")
+structure IntTycon = Tycon0Simple (type t = int
+                                   val iso = Iso.id
+                                   val name = "int")
 
 structure Z = DummyEqualsShow0 (structure Tycon = IntTycon
                                 val dummy = 13

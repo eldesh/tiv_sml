@@ -1,13 +1,14 @@
-functor Flatten (structure Base: TYCON0)
+
+functor Flatten (structure Base: TYCON0_SIMPLE)
    : TIV where type 'a t = 'a -> Base.t list =
 struct
   structure Flatten =
-     Tiv (type 'a t = 'a -> Base.t list
-          val name = "flatten"
-          fun iso i = let open Iso in arrow (i, id) end)
+    Tiv (type 'a t = 'a -> Base.t list
+         val name = "flatten"
+         fun iso i = let open Iso in arrow (i, id) end)
 
   structure Z =
-     DefCase0
+    DefCase0Simple
      (structure Tycon = Base
       structure Value = Flatten
       fun rule i = [i])

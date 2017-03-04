@@ -1,5 +1,9 @@
-structure RealTycon = Tycon0 (type t = real
-                              val name = "real")
+structure RealTycon =
+  Tycon0Simple (
+    type t = real
+    val iso = Iso.id
+    val name = "real"
+  )
 
 structure Z = DummyEqualsShow0 (structure Tycon = RealTycon
                                 val dummy = 17.0

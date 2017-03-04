@@ -1,7 +1,10 @@
 
 structure StringTycon =
-  Tycon0 (type t = String.string
-          val name = "string")
+  Tycon0Simple (
+    type t = String.string
+    val iso = Iso.id
+    val name = "string"
+  )
 
 structure Z = DummyEqualsShow0 (structure Tycon = StringTycon
                                 val dummy = ""
